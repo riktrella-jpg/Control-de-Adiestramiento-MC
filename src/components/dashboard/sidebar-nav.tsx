@@ -266,7 +266,87 @@ export function SidebarNav() {
         </div>
       </SidebarFooter>
 
-      {/* DIALOGS REMOVED FOR BREVITY IN CODE BUT KEPT IN LOGIC */}
+      <Dialog open={addPetOpen} onOpenChange={setAddPetOpen}>
+        <DialogContent className="bg-black/95 backdrop-blur-2xl border-white/10 text-white rounded-3xl sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black uppercase tracking-tight flex items-center gap-3">
+              <PartyPopper className="h-6 w-6 text-primary" />
+              Nuevo Binomio
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground font-medium">
+              Registra una nueva mascota en tu pack de entrenamiento.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-6 space-y-4">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-primary/70 ml-1">Nombre de la Mascota</Label>
+              <Input
+                placeholder="Ej. Haku"
+                value={newPetName}
+                onChange={(e) => setNewPetName(e.target.value)}
+                className="bg-white/5 border-white/10 h-12 rounded-xl focus:ring-primary focus:border-primary text-lg font-bold"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              className="w-full h-12 rounded-xl bg-primary text-black font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+              onClick={handleAddPet}
+              disabled={isUpdating || !newPetName.trim()}
+            >
+              {isUpdating ? <Activity className="h-5 w-5 animate-spin" /> : "Confirmar Registro"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
+        <DialogContent className="bg-black/95 backdrop-blur-2xl border-white/10 text-white rounded-3xl sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Ajustes del Sistema</DialogTitle>
+          </DialogHeader>
+          <div className="py-6 space-y-6">
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-bold">Modo Oscuro</Label>
+                <p className="text-xs text-muted-foreground font-medium">Cambiar apariencia del tema.</p>
+              </div>
+              <Switch
+                checked={theme === "dark"}
+                onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+              />
+            </div>
+            
+            <div className="space-y-3">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-primary/70 ml-1">Identidad Visual</Label>
+              <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
+                 <Avatar className="h-16 w-16 border-2 border-primary/20 cursor-pointer hover:opacity-80 transition-opacity" onClick={handleAvatarClick}>
+                    <AvatarImage src={selectedPet?.photo_url} className="object-cover" />
+                    <AvatarFallback className="font-black text-xl">{(selectedPet?.name?.[0] || 'P').toUpperCase()}</AvatarFallback>
+                 </Avatar>
+                 <div className="flex-1">
+                    <p className="text-sm font-bold">{selectedPet?.name || "Sin Mascota"}</p>
+                    <p className="text-xs text-muted-foreground mb-2">Sube una foto para su expediente.</p>
+                    <Button size="sm" variant="outline" onClick={handleAvatarClick} className="h-7 text-[10px] uppercase font-black tracking-widest border-white/10 bg-transparent hover:bg-white/10">
+                       <Camera className="h-3 w-3 mr-2" /> Cambiar Foto
+                    </Button>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      className="hidden" 
+                      accept="image/*" 
+                      onChange={handleFileChange}
+                    />
+                 </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="w-full h-12 rounded-xl border-white/10 font-black uppercase tracking-widest" onClick={() => setProfileOpen(false)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
+
   );
 }

@@ -236,7 +236,6 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     const { data, error } = await supabase.from('pets').insert({
       user_id: user.id,
       name,
-      breed,
       level: 'Principiante'
     }).select().single();
     if (error) throw error;

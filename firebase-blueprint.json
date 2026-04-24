@@ -1,0 +1,90 @@
+
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user profile information and global progress.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "dogName": { "type": "string" },
+        "dogPhotoURL": { "type": "string" },
+        "filesUploaded": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "ModuleProgress": {
+      "title": "Module Progress",
+      "description": "Tracks completed weeks within a module.",
+      "type": "object",
+      "properties": {
+        "moduleId": { "type": "string" },
+        "completedWeekIds": { "type": "array", "items": { "type": "string" } },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["moduleId", "completedWeekIds"]
+    },
+    "Task": {
+      "title": "User Task",
+      "description": "A custom task created by the user.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "done": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "label", "done"]
+    },
+    "Achievement": {
+      "title": "User Achievement",
+      "description": "Tracks unlocked achievements.",
+      "type": "object",
+      "properties": {
+        "achievementId": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "unlockedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["achievementId", "completed"]
+    },
+    "PlanHistory": {
+      "title": "Plan History",
+      "description": "AI generated training plans.",
+      "type": "object",
+      "properties": {
+        "dogDescription": { "type": "string" },
+        "dogName": { "type": "string" },
+        "analysis": { "type": "string" },
+        "focusAreas": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["dogDescription", "analysis", "focusAreas", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile and settings."
+    },
+    "/users/{userId}/moduleProgress/{moduleId}": {
+      "schema": "ModuleProgress",
+      "description": "Progress tracking for each course module."
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "User's personal tasks."
+    },
+    "/users/{userId}/achievements/{achievementId}": {
+      "schema": "Achievement",
+      "description": "User's earned achievements."
+    },
+    "/users/{userId}/planHistory/{planId}": {
+      "schema": "PlanHistory",
+      "description": "History of AI-generated plans."
+    }
+  }
+}

@@ -1,0 +1,193 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required) - User unique ID
+    //   - email: string (required, email format) - User email
+    //   - displayName: string (optional) - User's name
+    //   - dogName: string (optional) - Dog's name
+    //   - dogPhotoURL: string (optional, url format) - Dog's photo URL
+    //   - filesUploaded: number (optional) - Count of files uploaded
+    //   - role: string (optional) - User role (admin, user)
+    //   - createdAt: timestamp (required) - Creation time
+    //   - updatedAt: timestamp (optional) - Last update time
+    //
+    // Collection: moduleProgress (subcollection of users)
+    // Document ID: {moduleId}
+    // Fields:
+    //   - moduleId: string (required) - Module ID
+    //   - completedWeekIds: list (required) - List of completed week IDs
+    //   - updatedAt: timestamp (required) - Last update time
+    //
+    // Collection: tasks (subcollection of users)
+    // Document ID: {taskId}
+    // Fields:
+    //   - id: string (required) - Task ID
+    //   - label: string (required) - Task label
+    //   - done: bool (required) - Completion status
+    //   - createdAt: timestamp (required) - Creation time
+    //
+    // Collection: achievements (subcollection of users)
+    // Document ID: {achievementId}
+    // Fields:
+    //   - achievementId: string (required) - Achievement ID
+    //   - completed: bool (required) - Completion status
+    //   - unlockedAt: timestamp (required) - Unlock time
+    //
+    // Collection: planHistory (subcollection of users)
+    // Document ID: {planId}
+    // Fields:
+    //   - dogDescription: string (required) - Input description
+    //   - dogName: string (optional) - Dog's name
+    //   - analysis: string (required) - AI analysis
+    //   - focusAreas: list (required) - List of focus areas
+    //   - createdAt: timestamp (required) - Creation time
+    //
+    // Collection: uploads (subcollection of users)
+    // Document ID: {uploadId}
+    // Fields:
+    //   - id: string (required) - Upload ID
+    //   - name: string (required) - File name
+    //   - url: string (required, url format) - Download URL
+    //   - type: string (required) - MIME type
+    //   - createdAt: timestamp (required) - Creation time
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+              (request.auth.token.email == "riktrella@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUrl(url) {
+      return url is string && (url.matches("^https://.*") || url.matches("^http://.*"));
+    }
+
+    function isRecent(ts) {
+      return ts is timestamp && ts > duration.value(0, 's') && ts <= request.time;
+    }
+
+    // Domain Validators
+    
+    function isValidUser(data) {
+      return data.keys().hasOnly(['uid', 'email', 'displayName', 'dogName', 'dogPhotoURL', 'filesUploaded', 'role', 'createdAt', 'updatedAt']) &&
+             data.keys().hasAll(['uid', 'email', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             isValidEmail(data.email) &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() < 100)) &&
+             (!('dogName' in data) || (data.dogName is string && data.dogName.size() < 100)) &&
+             (!('dogPhotoURL' in data) || (isValidUrl(data.dogPhotoURL) && data.dogPhotoURL.size() < 1000)) &&
+             (!('filesUploaded' in data) || data.filesUploaded is number) &&
+             (!('role' in data) || (data.role in ['admin', 'user', 'client'])) &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidModuleProgress(data) {
+      return data.keys().hasOnly(['moduleId', 'completedWeekIds', 'updatedAt']) &&
+             data.keys().hasAll(['moduleId', 'completedWeekIds', 'updatedAt']) &&
+             data.moduleId is string &&
+             data.completedWeekIds is list &&
+             data.updatedAt is timestamp;
+    }
+
+    function isValidTask(data) {
+      return data.keys().hasOnly(['id', 'label', 'done', 'createdAt']) &&
+             data.keys().hasAll(['id', 'label', 'done', 'createdAt']) &&
+             data.id is string &&
+             data.label is string && data.label.size() < 500 &&
+             data.done is bool &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidAchievement(data) {
+      return data.keys().hasOnly(['achievementId', 'completed', 'unlockedAt', 'updatedAt']) &&
+             data.keys().hasAll(['achievementId', 'completed']) &&
+             data.achievementId is string &&
+             data.completed is bool &&
+             (!('unlockedAt' in data) || data.unlockedAt is timestamp) &&
+             (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function isValidPlanHistory(data) {
+      return data.keys().hasOnly(['dogDescription', 'dogName', 'analysis', 'focusAreas', 'createdAt', 'planSteps', 'proTip']) &&
+             data.keys().hasAll(['dogDescription', 'analysis', 'focusAreas', 'createdAt']) &&
+             data.dogDescription is string && data.dogDescription.size() < 2000 &&
+             data.analysis is string && data.analysis.size() < 10000 &&
+             data.focusAreas is list &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidUpload(data) {
+      return data.keys().hasOnly(['id', 'name', 'url', 'type', 'createdAt', 'status', 'feedback']) &&
+             data.keys().hasAll(['id', 'name', 'url', 'type', 'createdAt']) &&
+             data.id is string &&
+             data.name is string && data.name.size() < 500 &&
+             isValidUrl(data.url) &&
+             data.type is string &&
+             (!('status' in data) || data.status in ['pending', 'reviewed', 'approved', 'improve']) &&
+             (!('feedback' in data) || (data.feedback is string && data.feedback.size() < 2000)) &&
+             data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && 
+                      (!('role' in request.resource.data) || request.resource.data.role == 'user' || isAdmin());
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && 
+                      (!('role' in request.resource.data) || request.resource.data.role == resource.data.role || isAdmin());
+      
+      match /moduleProgress/{moduleId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isOwner(userId) && isValidModuleProgress(request.resource.data);
+      }
+      
+      match /tasks/{taskId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isOwner(userId) && isValidTask(request.resource.data);
+      }
+      
+      match /achievements/{achievementId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isOwner(userId) && isValidAchievement(request.resource.data);
+      }
+      
+      match /planHistory/{planId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidPlanHistory(request.resource.data);
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      match /uploads/{uploadId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if (isOwner(userId) || isAdmin()) && isValidUpload(request.resource.data);
+      }
+    }
+  }
+}

@@ -16,9 +16,11 @@ import { Lock, Clock, ClipboardList, WandSparkles, GraduationCap } from 'lucide-
 import { cn } from '@/lib/utils';
 import confetti from 'canvas-confetti';
 import { motion } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CoursesPage() {
     const { modules, toggleWeekCompletion, progress, tasks, userProfile, uploads } = useAppState();
+    const { toast } = useToast();
     const [lockState, setLockState] = useState<Record<string, { isLocked: boolean; message: string }>>({})
 
     // Precompute lock state for all weeks using useEffect
@@ -54,16 +56,24 @@ export default function CoursesPage() {
 
     const handleToggleWeekCompletion = async (moduleId: string, weekId: string, week: any, module: any) => {
         const isLastWeek = week.id === module.weeks[module.weeks.length - 1].id;
-        const response = await toggleWeekCompletion(moduleId, weekId);
-        
-        if (response?.isLocked) return;
-        
-        if (isLastWeek && !week.completed) {
-            confetti({
-                particleCount: 150,
-                spread: 70,
-                origin: { y: 0.6 },
-                colors: ['#FFD700', '#FFA500', '#FF8C00', '#ffffff']
+        try {
+            const response = await toggleWeekCompletion(moduleId, weekId);
+            
+            if (response?.isLocked) return;
+            
+            if (isLastWeek && !week.completed) {
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#FFD700', '#FFA500', '#FF8C00', '#ffffff']
+                });
+            }
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Error al actualizar curso",
+                description: error.message || "Ocurrió un error al guardar tu progreso."
             });
         }
     };

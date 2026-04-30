@@ -61,7 +61,7 @@ const ActionCard = ({ href, icon, title, description, onClick }: ActionCardProps
 export function QuickActions({ className }: { className?: string }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast, dismiss } = useToast();
-  const { user, userProfile } = useAppState();
+  const { user, uploadVideo } = useAppState();
   const supabase = createClient();
 
   const handleUploadClick = () => {
@@ -114,24 +114,10 @@ export function QuickActions({ className }: { className?: string }) {
     const { id: toastId, update: updateToast } = toast({ title: "Subiendo archivo...", description: `Preparando "${file.name}" para la subida.` });
 
     try {
-      const uniqueFileName = `${user.id}/${uuidv4()}-${file.name}`;
-
       updateToast({ title: "Subiendo archivo...", description: "Por favor espera..." });
-
-      const { error: uploadError } = await supabase.storage.from('uploads').upload(uniqueFileName, file, { cacheControl: '3600', upsert: false });
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(uniqueFileName);
-
-      const uploadId = uuidv4();
-      await supabase.from('uploads').insert({ id: uploadId, name: file.name, url: publicUrl, type: file.type, size: file.size, user_id: user.id });
-
-      const currentFilesUploaded = userProfile?.filesUploaded || 0;
-      await supabase.from('users').update({ filesUploaded: currentFilesUploaded + 1 }).eq('id', user.id);
-
+      await uploadVideo(file);
       dismiss(toastId);
       toast({ title: "¡Subida completada!", description: `"${file.name}" se ha subido correctamente.` });
-
     } catch (error: any) {
       dismiss(toastId);
       toast({ variant: "destructive", title: "Error en la subida", description: error.message || "No se pudo subir el archivo." });

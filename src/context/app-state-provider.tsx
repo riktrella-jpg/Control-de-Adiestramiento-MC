@@ -8,6 +8,7 @@ import { useUser } from '@/hooks/use-user';
 import { useCollection, WithId } from '@/hooks/use-collection';
 import { useDoc } from '@/hooks/use-doc';
 import { createClient } from '@/supabase/client';
+import { logError } from '@/lib/utils';
 
 
 interface Pet {
@@ -121,6 +122,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const [isMounted, setIsMounted] = useState(false);
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
   const [addPetOpen, setAddPetOpen] = useState(false);
+  const isCreatingPetRef = React.useRef(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -205,8 +207,16 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   }, [user, userProfile, isProfileLoading, supabase, refetchUserProfile]);
 
   useEffect(() => {
-    if (user && pets.length === 0 && !isPetsLoading) {
+    if (user && pets.length === 0 && !isPetsLoading && !isCreatingPetRef.current) {
+        isCreatingPetRef.current = true;
         const createDefaultPet = async () => {
+            // Double-check in DB before inserting to prevent race conditions
+            const { data: existing } = await supabase.from('pets').select('id').eq('user_id', user.id).limit(1);
+            if (existing && existing.length > 0) {
+                await refetchPets();
+                isCreatingPetRef.current = false;
+                return;
+            }
             const name = userProfile?.dogName || user.user_metadata?.dog_name || "Mi Primogénito";
             const photo = userProfile?.dogPhotoURL || user.user_metadata?.dog_photo_url;
             await supabase.from('pets').insert({
@@ -215,7 +225,8 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
                 photo_url: photo,
                 level: 'Principiante'
             });
-            refetchPets();
+            await refetchPets();
+            isCreatingPetRef.current = false;
         };
         createDefaultPet();
     }
@@ -275,36 +286,55 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     const newItems = completedIds.includes(weekId) ? completedIds.filter(id => id !== weekId) : [...completedIds, weekId];
     
     if (!dryRun) {
-        await supabase.from('module_progress').upsert({
-          id: `${user.id}:${selectedPet.id}:${moduleId}`,
-          user_id: user.id,
-          pet_id: selectedPet.id,
-          moduleId,
-          completedWeekIds: newItems,
-          updatedAt: new Date().toISOString()
-        });
-        await refetchModuleProgress();
+        try {
+            const { error } = await supabase.from('module_progress').upsert({
+              id: `${user.id}:${selectedPet.id}:${moduleId}`,
+              user_id: user.id,
+              pet_id: selectedPet.id,
+              moduleId,
+              completedWeekIds: newItems,
+              updatedAt: new Date().toISOString()
+            });
+            if (error) {
+                await logError("toggleWeekCompletion", error);
+                throw error;
+            }
+            await refetchModuleProgress();
+        } catch (error: any) {
+            await logError("toggleWeekCompletion.catch", error);
+            throw new Error(error.message || "Error al actualizar el progreso del módulo");
+        }
     }
     return { isLocked: false, message: "" };
   }, [user, selectedPet, dbModuleProgress, supabase, refetchModuleProgress]);
 
   const addTask = useCallback(async (label: string) => {
     if (!user || !selectedPet) return;
-    await supabase.from('tasks').insert({
+    const { error } = await supabase.from('tasks').insert({
       user_id: user.id,
       pet_id: selectedPet.id,
       label,
       done: false,
       createdAt: new Date().toISOString()
     });
+    if (error) {
+      await logError("addTask", error);
+      throw new Error(error.message || "Error de base de datos");
+    }
     await refetchTasks();
   }, [user, selectedPet, supabase, refetchTasks]);
 
   const toggleTaskCompletion = useCallback(async (taskId: string) => {
     const task = tasks.find(t => t.id === taskId);
     if (task) {
-      await supabase.from('tasks').update({ done: !task.done }).eq('id', taskId);
-      await refetchTasks();
+      try {
+          const { error } = await supabase.from('tasks').update({ done: !task.done }).eq('id', taskId);
+          if (error) throw error;
+          await refetchTasks();
+      } catch (error: any) {
+          await logError("toggleTaskCompletion", error);
+          throw new Error(error.message || "Error al actualizar la tarea");
+      }
     }
   }, [tasks, supabase, refetchTasks]);
 
@@ -326,16 +356,29 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
 
   const uploadVideo = useCallback(async (file: File) => {
      if (!user || !selectedPet) return;
-     const fileId = Math.random().toString(36).substring(7);
-     const path = `${user.id}/${selectedPet.id}/${fileId}-${file.name}`;
-     await supabase.storage.from('uploads').upload(path, file);
-     const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(path);
-     await supabase.from('uploads').insert({
-       id: fileId, name: file.name, url: publicUrl, type: file.type, size: file.size,
-       user_id: user.id, pet_id: selectedPet.id, status: 'pending'
-     });
-     await refetchUploads();
-  }, [user, selectedPet, supabase, refetchUploads]);
+     try {
+         const fileId = Math.random().toString(36).substring(7);
+         const path = `${user.id}/${selectedPet.id}/${fileId}-${file.name}`;
+         const { error: uploadError } = await supabase.storage.from('uploads').upload(path, file);
+         if (uploadError) throw uploadError;
+         
+         const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(path);
+         const { error: insertError } = await supabase.from('uploads').insert({
+           id: fileId, name: file.name, url: publicUrl, type: file.type, size: file.size,
+           user_id: user.id, pet_id: selectedPet.id, status: 'pending'
+         });
+         if (insertError) throw insertError;
+
+         if (userProfile) {
+            await supabase.from('users').update({ filesUploaded: (userProfile.filesUploaded || 0) + 1 }).eq('id', user.id);
+         }
+         
+         await refetchUploads();
+     } catch (error: any) {
+         await logError("uploadVideo", error);
+         throw new Error(error.message || "Error al subir video");
+     }
+  }, [user, selectedPet, supabase, refetchUploads, userProfile]);
 
   const deleteVideo = useCallback(async (id: string) => {
      await supabase.from('uploads').delete().eq('id', id);

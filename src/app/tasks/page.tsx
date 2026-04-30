@@ -39,6 +39,7 @@ export default function TasksPage() {
     const [popoverOpen, setPopoverOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadingFileName, setUploadingFileName] = useState("");
+    const [isAddingTask, setIsAddingTask] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast, dismiss } = useToast();
 
@@ -138,23 +139,29 @@ export default function TasksPage() {
 
     const handleAddTask = async () => {
         if (newTaskLabel.trim()) {
+            setIsAddingTask(true);
             try {
                 await addTask(newTaskLabel.trim());
                 setNewTaskLabel("");
                 toast({ title: "Tarea añadida", description: `"${newTaskLabel.trim()}" se ha guardado correctamente.` });
             } catch (error: any) {
                 toast({ variant: "destructive", title: "Error al añadir tarea", description: error.message || "No se pudo guardar la tarea." });
+            } finally {
+                setIsAddingTask(false);
             }
         }
     };
     
     const handleAddSuggestedTask = async (taskLabel: string) => {
+        setIsAddingTask(true);
         try {
             await addTask(taskLabel);
             setPopoverOpen(false);
             toast({ title: "Tarea sugerida añadida", description: `"${taskLabel}" se ha guardado correctamente.` });
         } catch (error: any) {
             toast({ variant: "destructive", title: "Error al añadir sugerencia", description: error.message || "No se pudo guardar la tarea." });
+        } finally {
+            setIsAddingTask(false);
         }
     }
 
@@ -219,8 +226,8 @@ export default function TasksPage() {
                                                     onKeyPress={(e) => e.key === 'Enter' && handleAddTask()}
                                                     className="rounded-xl bg-muted/50 border-none"
                                                 />
-                                                <Button size="icon" onClick={handleAddTask} disabled={!newTaskLabel.trim()} className="rounded-xl aspect-square">
-                                                    <CheckCircle2 className="h-4 w-4" />
+                                                <Button size="icon" onClick={handleAddTask} disabled={!newTaskLabel.trim() || isAddingTask} className="rounded-xl aspect-square">
+                                                    {isAddingTask ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                                                 </Button>
                                             </div>
                                             <div className="space-y-3">
@@ -231,6 +238,7 @@ export default function TasksPage() {
                                                             key={index}
                                                             variant="ghost"
                                                             className="justify-start text-left h-auto p-3 hover:bg-primary/5 rounded-xl border border-transparent hover:border-primary/10"
+                                                            disabled={isAddingTask}
                                                             onClick={() => handleAddSuggestedTask(suggestion)}
                                                         >
                                                             <ListPlus className="mr-3 h-4 w-4 flex-shrink-0 text-primary" />

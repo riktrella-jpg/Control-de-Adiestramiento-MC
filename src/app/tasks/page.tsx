@@ -137,33 +137,42 @@ export default function TasksPage() {
         }
     };
 
-    const handleAddTask = async () => {
-        if (newTaskLabel.trim()) {
-            setIsAddingTask(true);
-            try {
-                await addTask(newTaskLabel.trim());
-                setNewTaskLabel("");
-                toast({ title: "Tarea añadida", description: `"${newTaskLabel.trim()}" se ha guardado correctamente.` });
-            } catch (error: any) {
-                toast({ variant: "destructive", title: "Error al añadir tarea", description: error.message || "No se pudo guardar la tarea." });
-            } finally {
-                setIsAddingTask(false);
-            }
+    const handleAddTask = async (labelOverride?: string) => {
+        const finalLabel = (labelOverride || newTaskLabel).trim();
+        
+        // FASE 2: Validaciones robustas
+        if (!finalLabel) {
+            toast({ variant: "destructive", title: "Campo vacío", description: "Por favor, escribe o selecciona una tarea de las sugerencias." });
+            return;
         }
-    };
-    
-    const handleAddSuggestedTask = async (taskLabel: string) => {
+        if (finalLabel.length < 5) {
+            toast({ variant: "destructive", title: "Texto muy corto", description: "La tarea debe ser más descriptiva para ser efectiva." });
+            return;
+        }
+        
+        // Prevención de duplicados (insensible a mayúsculas)
+        const isDuplicate = tasks.some(t => t.label.toLowerCase() === finalLabel.toLowerCase() && !t.done);
+        if (isDuplicate) {
+            toast({ variant: "destructive", title: "Tarea duplicada", description: "Ya tienes esta tarea pendiente de realizar." });
+            return;
+        }
+
         setIsAddingTask(true);
         try {
-            await addTask(taskLabel);
-            setPopoverOpen(false);
-            toast({ title: "Tarea sugerida añadida", description: `"${taskLabel}" se ha guardado correctamente.` });
+            await addTask(finalLabel);
+            setNewTaskLabel("");
+            setPopoverOpen(false); // Cerramos el Dialog
+            // FASE 3: Feedback visual de éxito
+            toast({ title: "Tarea registrada", description: `¡"${finalLabel}" añadida con éxito a tu lista!`, className: "bg-green-600 border-none text-white font-bold" });
         } catch (error: any) {
-            toast({ variant: "destructive", title: "Error al añadir sugerencia", description: error.message || "No se pudo guardar la tarea." });
+            // FASE 6: Manejo de errores visual
+            toast({ variant: "destructive", title: "Error al registrar", description: error.message || "No se pudo sincronizar con la base de datos." });
         } finally {
             setIsAddingTask(false);
         }
-    }
+    };
+    
+    // Eliminamos handleAddSuggestedTask y unificamos con handleAddTask(labelOverride) para mejor DRY
 
     const handleToggleTask = async (taskId: string) => {
         try {
@@ -205,51 +214,87 @@ export default function TasksPage() {
                                     <h1 className="text-3xl font-extrabold tracking-tight">Tareas MANADA</h1>
                                     <p className="text-muted-foreground text-sm mt-1">Organiza tus prácticas diarias y conecta con los pilares del método.</p>
                                 </div>
-                                <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button className="rounded-full px-6 shadow-lg shadow-primary/20">
-                                            <PlusCircle className="mr-2 h-4 w-4" /> Nueva Tarea
+                                <Dialog open={popoverOpen} onOpenChange={setPopoverOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button className="rounded-full px-6 py-6 shadow-xl shadow-primary/30 hover:scale-105 transition-transform text-md font-bold group">
+                                            <PlusCircle className="mr-2 h-5 w-5 group-hover:rotate-90 transition-transform" /> Nueva Tarea Diaria
                                         </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-80 p-5 rounded-2xl shadow-2xl border-primary/10" align="end">
-                                        <div className="grid gap-5">
-                                            <div className="space-y-1">
-                                                <h4 className="font-bold">Añadir Tarea</h4>
-                                                <p className="text-xs text-muted-foreground">Elige una sugerencia o crea una personalizada.</p>
-                                            </div>
-                                            <div className="flex w-full items-center space-x-2">
-                                                <Input
-                                                    type="text"
-                                                    placeholder="Ej: Caminar 10 min..."
-                                                    value={newTaskLabel}
-                                                    onChange={(e) => setNewTaskLabel(e.target.value)}
-                                                    onKeyPress={(e) => e.key === 'Enter' && handleAddTask()}
-                                                    className="rounded-xl bg-muted/50 border-none"
-                                                />
-                                                <Button size="icon" onClick={handleAddTask} disabled={!newTaskLabel.trim() || isAddingTask} className="rounded-xl aspect-square">
-                                                    {isAddingTask ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                                                </Button>
-                                            </div>
-                                            <div className="space-y-3">
-                                                <h4 className="font-bold text-xs uppercase tracking-widest text-primary/70">Sugerencias</h4>
-                                                <div className="grid gap-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                                    </DialogTrigger>
+                                    <DialogContent className="w-[95vw] max-w-lg rounded-[2rem] p-0 overflow-hidden border-primary/20 shadow-2xl bg-gradient-to-b from-card to-card/95">
+                                        <div className="p-6 md:p-8 bg-primary/5 border-b border-primary/10">
+                                            <DialogTitle className="text-2xl md:text-3xl font-black flex items-center gap-3">
+                                                <Sparkles className="h-7 w-7 text-primary" />
+                                                Registrar Práctica
+                                            </DialogTitle>
+                                            <DialogDescription className="text-sm mt-2 text-muted-foreground/80">
+                                                Diseña tu entrenamiento de hoy. Elige una sugerencia o escribe la tuya propia.
+                                            </DialogDescription>
+                                        </div>
+                                        
+                                        <div className="p-6 md:p-8 space-y-8">
+                                            {/* Paso 1: Selección Rápida (Chips) */}
+                                            <div className="space-y-4">
+                                                <Label className="text-[10px] md:text-xs uppercase tracking-widest font-black text-primary/70">1. Sugerencias Rápidas</Label>
+                                                <div className="flex flex-wrap gap-2 max-h-[140px] overflow-y-auto custom-scrollbar pr-2 pb-1">
                                                     {suggestedTasks.map((suggestion, index) => (
-                                                        <Button
+                                                        <button
                                                             key={index}
-                                                            variant="ghost"
-                                                            className="justify-start text-left h-auto p-3 hover:bg-primary/5 rounded-xl border border-transparent hover:border-primary/10"
-                                                            disabled={isAddingTask}
-                                                            onClick={() => handleAddSuggestedTask(suggestion)}
+                                                            onClick={() => setNewTaskLabel(suggestion)}
+                                                            className="text-left text-xs md:text-sm font-medium bg-muted/50 hover:bg-primary/10 hover:text-primary transition-all border border-transparent hover:border-primary/30 rounded-full px-4 py-2 hover:scale-[1.02] active:scale-95"
                                                         >
-                                                            <ListPlus className="mr-3 h-4 w-4 flex-shrink-0 text-primary" />
-                                                            <span className="text-xs font-medium">{suggestion}</span>
-                                                        </Button>
+                                                            {suggestion.length > 50 ? suggestion.substring(0, 50) + '...' : suggestion}
+                                                        </button>
                                                     ))}
                                                 </div>
                                             </div>
+
+                                            {/* Paso 2: Entrada Inteligente */}
+                                            <div className="space-y-4">
+                                                <Label className="text-[10px] md:text-xs uppercase tracking-widest font-black text-primary/70">2. Detalle de la Tarea</Label>
+                                                <div className="relative group/input">
+                                                    <Input
+                                                        type="text"
+                                                        placeholder="Ej: Caminar 10 min en foco..."
+                                                        value={newTaskLabel}
+                                                        onChange={(e) => setNewTaskLabel(e.target.value)}
+                                                        onKeyPress={(e) => e.key === 'Enter' && handleAddTask()}
+                                                        className="rounded-2xl bg-muted/80 border-primary/20 pl-5 pr-12 py-7 text-base md:text-lg font-medium shadow-inner focus-visible:ring-primary/50 focus-visible:bg-background transition-all"
+                                                        disabled={isAddingTask}
+                                                    />
+                                                    {newTaskLabel.trim() && (
+                                                        <button 
+                                                            onClick={() => setNewTaskLabel('')}
+                                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-destructive p-2 rounded-full hover:bg-destructive/10 transition-colors"
+                                                            title="Limpiar"
+                                                        >
+                                                            <AlertCircle className="h-5 w-5" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Paso 3: Confirmación Inmediata */}
+                                            <div className="pt-4">
+                                                <Button 
+                                                    onClick={() => handleAddTask()} 
+                                                    disabled={!newTaskLabel.trim() || isAddingTask} 
+                                                    className="w-full rounded-2xl py-7 text-lg font-black shadow-xl shadow-primary/25 transition-all active:scale-95 group/btn relative overflow-hidden"
+                                                >
+                                                    {isAddingTask ? (
+                                                        <>
+                                                            <Loader2 className="mr-3 h-6 w-6 animate-spin" /> Guardando en Supabase...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300 ease-out" />
+                                                            <CheckCircle2 className="mr-3 h-6 w-6 group-hover/btn:scale-125 transition-transform" /> Confirmar y Guardar Tarea
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            </div>
                                         </div>
-                                    </PopoverContent>
-                                </Popover>
+                                    </DialogContent>
+                                </Dialog>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

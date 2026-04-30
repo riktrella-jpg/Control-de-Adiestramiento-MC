@@ -149,34 +149,30 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
 
   // Data Filtering by Pet
   const { data: dbTasksRaw, refetch: refetchTasks } = useCollection<Task>(
-    user && selectedPet ? 'tasks' : null,
+    user ? 'tasks' : null,
     [
-        { column: 'user_id', operator: 'eq', value: user?.id },
-        { column: 'pet_id', operator: 'eq', value: selectedPet?.id }
+        { column: 'user_id', operator: 'eq', value: user?.id }
     ]
   );
 
   const { data: dbUploadsRaw, refetch: refetchUploads } = useCollection<Upload>(
-    user && selectedPet ? 'uploads' : null,
+    user ? 'uploads' : null,
     [
-        { column: 'user_id', operator: 'eq', value: user?.id },
-        { column: 'pet_id', operator: 'eq', value: selectedPet?.id }
+        { column: 'user_id', operator: 'eq', value: user?.id }
     ]
   );
 
   const { data: dbProgressRaw, refetch: refetchModuleProgress } = useCollection<ModuleProgress>(
-    user && selectedPet ? 'module_progress' : null,
+    user ? 'module_progress' : null,
     [
-        { column: 'user_id', operator: 'eq', value: user?.id },
-        { column: 'pet_id', operator: 'eq', value: selectedPet?.id }
+        { column: 'user_id', operator: 'eq', value: user?.id }
     ]
   );
 
   const { data: dbAchievementsRaw, refetch: refetchAchievements } = useCollection<Achievement>(
-    user && selectedPet ? 'achievements' : null,
+    user ? 'achievements' : null,
     [
-        { column: 'user_id', operator: 'eq', value: user?.id },
-        { column: 'pet_id', operator: 'eq', value: selectedPet?.id }
+        { column: 'user_id', operator: 'eq', value: user?.id }
     ]
   );
 
@@ -309,10 +305,9 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   }, [user, selectedPet, dbModuleProgress, supabase, refetchModuleProgress]);
 
   const addTask = useCallback(async (label: string) => {
-    if (!user || !selectedPet) return;
+    if (!user) return;
     const { error } = await supabase.from('tasks').insert({
       user_id: user.id,
-      pet_id: selectedPet.id,
       label,
       done: false,
       createdAt: new Date().toISOString()

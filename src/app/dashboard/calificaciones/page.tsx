@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, AlertCircle, Star, Video, ArrowRight, Target, Zap, Clock } from "lucide-react";
 import { motion } from "motion/react";
+import { useAppState } from "@/context/app-state-provider";
 
 // --- MODELO DE DATOS (Ejemplo para Arquitectura) ---
 type EvaluationStatus = 'excellent' | 'approved' | 'needs_improvement' | 'pending';
@@ -106,6 +107,8 @@ const MetricBar = ({ label, value, icon: Icon }: { label: string, value: number,
 );
 
 export default function CalificacionesPage() {
+    const { uploads, selectedPet } = useAppState();
+
     return (
         <div className="max-w-4xl mx-auto space-y-8 p-4 sm:p-6 lg:p-8">
             
@@ -115,32 +118,37 @@ export default function CalificacionesPage() {
                     Centro de Retroalimentación
                 </h1>
                 <p className="text-muted-foreground text-lg">
-                    Aquí encontrarás las evaluaciones de tus tutores. Cada comentario es un paso más hacia el éxito con Haku.
+                    Aquí encontrarás las evaluaciones de tus tutores. Cada comentario es un paso más hacia el éxito con {selectedPet?.name || 'tu mascota'}.
                 </p>
             </div>
 
-            {/* Global Progress Summary (Mock) */}
+            {/* Global Progress Summary */}
             <Card className="bg-primary/5 border-primary/20">
                 <CardContent className="p-6 flex flex-col sm:flex-row items-center gap-6">
                     <div className="flex-shrink-0 relative">
                         <svg className="w-24 h-24 transform -rotate-90">
                             <circle cx="48" cy="48" r="36" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-muted/30" />
-                            <circle cx="48" cy="48" r="36" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray="226" strokeDashoffset="60" className="text-primary" />
+                            <circle cx="48" cy="48" r="36" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray="226" strokeDashoffset={`${226 - (226 * (uploads.filter(u => u.status === 'approved').length / Math.max(1, uploads.length)))}`} className="text-primary transition-all duration-1000" />
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center flex-col">
-                            <span className="text-2xl font-bold text-primary">75%</span>
+                            <span className="text-2xl font-bold text-primary">{Math.round((uploads.filter(u => u.status === 'approved').length / Math.max(1, uploads.length)) * 100)}%</span>
                         </div>
                     </div>
                     <div className="space-y-2 flex-1 text-center sm:text-left">
-                        <h3 className="text-xl font-semibold">Nivel: Perro Confiable (Fase 2)</h3>
-                        <p className="text-sm text-muted-foreground">Has mejorado un 15% en tu &apos;timing&apos; esta semana. ¡Sigue así! La consistencia es la clave.</p>
+                        <h3 className="text-xl font-semibold">Tasa de Aprobación</h3>
+                        <p className="text-sm text-muted-foreground">Tienes {uploads.filter(u => u.status === 'approved').length} videos aprobados de {uploads.length} subidos en total.</p>
                     </div>
                 </CardContent>
             </Card>
 
             {/* Timeline / Feed */}
             <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-border before:to-transparent">
-                {mockSubmissions.map((sub, index) => (
+                {uploads.length === 0 && (
+                    <div className="text-center py-12">
+                        <p className="text-muted-foreground">Aún no hay videos subidos para revisar.</p>
+                    </div>
+                )}
+                {uploads.sort((a,b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()).map((sub, index) => (
                     <motion.div 
                         key={sub.id}
                         initial={{ opacity: 0, y: 20 }}
@@ -157,58 +165,64 @@ export default function CalificacionesPage() {
                         <Card className="w-[calc(100%-3rem)] md:w-[calc(50%-2.5rem)] shadow-sm hover:shadow-md transition-shadow">
                             <CardHeader className="pb-3">
                                 <div className="flex justify-between items-start mb-2">
-                                    <StatusBadge status={sub.status} />
+                                    <StatusBadge status={sub.status as any || 'pending'} />
                                     <span className="text-xs text-muted-foreground flex items-center">
                                         <Clock className="w-3 h-3 mr-1" />
-                                        {sub.submittedAt.toISOString().split('T')[0]}
+                                        {new Date(sub.createdAt || Date.now()).toLocaleDateString()}
                                     </span>
                                 </div>
-                                <CardTitle className="text-lg">{sub.taskName}</CardTitle>
+                                <CardTitle className="text-lg">{sub.name}</CardTitle>
                             </CardHeader>
                             
-                            {sub.feedback && (
+                            {(sub.feedback || sub.feedback_detail) && (
                                 <CardContent className="space-y-4">
                                     {/* Trainer Info & Comment */}
                                     <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                                         <div className="flex items-center gap-3">
                                             <Avatar className="w-8 h-8 border border-border">
-                                                <AvatarImage src={sub.feedback.trainerAvatar} />
-                                                <AvatarFallback>{sub.feedback.trainerName[0]}</AvatarFallback>
+                                                <AvatarFallback>{sub.feedback_detail?.evaluatorName?.[0] || 'E'}</AvatarFallback>
                                             </Avatar>
                                             <div>
-                                                <p className="text-sm font-medium leading-none">{sub.feedback.trainerName}</p>
-                                                <p className="text-xs text-muted-foreground mt-1">Tutor Evaluador</p>
+                                                <p className="text-sm font-medium leading-none">{sub.feedback_detail?.evaluatorName || "Tutor Evaluador"}</p>
+                                                <p className="text-xs text-muted-foreground mt-1">{sub.feedback_detail?.evaluatorRole || "Equipo de Revisión"}</p>
                                             </div>
                                         </div>
                                         <p className="text-sm leading-relaxed text-foreground/90">
-                                            &quot;{sub.feedback.generalComment}&quot;
+                                            &quot;{sub.feedback || sub.feedback_detail?.comments}&quot;
                                         </p>
                                     </div>
 
                                     {/* Metrics (Optional) */}
-                                    {sub.feedback.metrics && (
+                                    {sub.feedback_detail && (
                                         <div className="grid grid-cols-3 gap-4 py-2">
-                                            <MetricBar label="Foco" value={sub.feedback.metrics.focus} icon={Target} />
-                                            <MetricBar label="Timing" value={sub.feedback.metrics.timing} icon={Zap} />
-                                            <MetricBar label="Técnica" value={sub.feedback.metrics.technique} icon={Star} />
+                                            <MetricBar label="Foco" value={sub.feedback_detail.foco || 0} icon={Target} />
+                                            <MetricBar label="Timing" value={sub.feedback_detail.timing || 0} icon={Zap} />
+                                            <MetricBar label="Técnica" value={sub.feedback_detail.tecnica || 0} icon={Star} />
                                         </div>
                                     )}
 
                                     {/* Actionable Items */}
-                                    <div className="space-y-2 pt-2 border-t">
-                                        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center">
-                                            <ArrowRight className="w-3 h-3 mr-1 text-primary" /> 
-                                            Siguientes Pasos
-                                        </h4>
-                                        <ul className="space-y-2">
-                                            {sub.feedback.actionableItems.map((item, i) => (
-                                                <li key={i} className="text-sm flex items-start gap-2">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
-                                                    <span className="text-foreground/80">{item}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
+                                    {sub.feedback_detail?.nextSteps && sub.feedback_detail.nextSteps.length > 0 && (
+                                        <div className="space-y-2 pt-2 border-t">
+                                            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center">
+                                                <ArrowRight className="w-3 h-3 mr-1 text-primary" /> 
+                                                Siguientes Pasos
+                                            </h4>
+                                            <ul className="space-y-2">
+                                                {sub.feedback_detail.nextSteps.map((item: string, i: number) => (
+                                                    <li key={i} className="text-sm flex items-start gap-2">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                                                        <span className="text-foreground/80">{item}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            )}
+                            {(!sub.feedback && !sub.feedback_detail) && (
+                                <CardContent>
+                                    <p className="text-sm text-muted-foreground italic">Video en espera de revisión profesional.</p>
                                 </CardContent>
                             )}
                         </Card>

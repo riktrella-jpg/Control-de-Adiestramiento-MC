@@ -29,25 +29,53 @@ export default function CoursesPage() {
       const state: Record<string, { isLocked: boolean; message: string }> = {};
       
       modules.forEach(module => {
-        const lastWeek = module.weeks[module.weeks.length - 1];
-        if (!lastWeek) return;
-        
-        const requiredVideosCount = module.moduleNumber;
         const completedTasks = tasks.filter((t: any) => t.done).length;
+        const requiredVideosCount = module.moduleNumber;
         const hasEnoughVideos = uploads.length >= requiredVideosCount;
         
         module.weeks.forEach((week, i) => {
-          const isWeek4 = week.week === 4;
-          const isLocked = !isAdmin && isWeek4 && !week.completed && (completedTasks < 3 || !hasEnoughVideos);
+          if (isAdmin) {
+             state[week.id] = { isLocked: false, message: '' };
+             return;
+          }
+
+          const baseTasks = (module.moduleNumber - 1) * 3;
+          let requiredTasks = baseTasks;
+          if (week.week === 2) requiredTasks = baseTasks + 1;
+          if (week.week === 3) requiredTasks = baseTasks + 2;
+          if (week.week === 4) requiredTasks = baseTasks + 3;
+
+          const hasEnoughTasks = completedTasks >= requiredTasks;
+          const needsVideo = week.week === 4;
+
+          let previousWeekCompleted = true;
+          if (week.week > 1) {
+            const prevWeek = module.weeks.find(w => w.week === week.week - 1);
+            previousWeekCompleted = prevWeek ? prevWeek.completed : true;
+          }
+
+          let isLocked = false;
+          let messages = [];
+
+          if (!previousWeekCompleted) {
+             isLocked = true;
+             messages.push(`Completa la semana ${week.week - 1}.`);
+          } else if (!hasEnoughTasks) {
+             isLocked = true;
+             messages.push(`Requiere ${requiredTasks} tareas completadas en total (tienes ${completedTasks}).`);
+          } else if (needsVideo && !hasEnoughVideos) {
+             isLocked = true;
+             messages.push(`Sube tu video de evidencia para este nivel.`);
+          }
+
+          if (week.completed) {
+             isLocked = false;
+             messages = [];
+          }
           
           state[week.id] = {
             isLocked: isLocked,
-            message: isLocked 
-              ? [
-                  completedTasks < 3 ? 'Completa al menos 3 tareas en tu lista.' : '', 
-                  !hasEnoughVideos ? `Sube tu video de evidencia para este nivel (necesitas ${requiredVideosCount} en total).` : ''
-                ].filter(Boolean).join(' ')
-              : ''
+            message: messages.join(' ')
           };
         });
       });

@@ -284,9 +284,8 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     if (!dryRun) {
         try {
             const { error } = await supabase.from('module_progress').upsert({
-              id: `${user.id}:${selectedPet.id}:${moduleId}`,
+              id: `${user.id}:${moduleId}`,
               user_id: user.id,
-              pet_id: selectedPet.id,
               moduleId,
               completedWeekIds: newItems,
               updatedAt: new Date().toISOString()
@@ -360,7 +359,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
          const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(path);
          const { error: insertError } = await supabase.from('uploads').insert({
            id: fileId, name: file.name, url: publicUrl, type: file.type, size: file.size,
-           user_id: user.id, pet_id: selectedPet.id, status: 'pending'
+           user_id: user.id, status: 'pending'
          });
          if (insertError) throw insertError;
 

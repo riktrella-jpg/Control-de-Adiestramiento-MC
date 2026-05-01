@@ -85,6 +85,7 @@ export function useCollection<T = any>(
 
       if (isMounted) {
         if (fetchError) {
+          console.error(`[useCollection] Error fetching ${tableName}:`, fetchError.message);
           setError(new Error(fetchError.message));
         } else {
           setData(result as WithId<T>[]);

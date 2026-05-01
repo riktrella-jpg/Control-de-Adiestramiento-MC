@@ -87,6 +87,7 @@ interface AppState {
   progress: number;
   modules: CourseModule[];
   tasks: Task[];
+  isTasksLoading: boolean;
   uploads: Upload[];
   achievements: Achievement[];
   pets: Pet[];
@@ -148,7 +149,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   }, [selectedPet, selectedPetId]);
 
   // Data Filtering by Pet
-  const { data: dbTasksRaw, refetch: refetchTasks } = useCollection<Task>(
+  const { data: dbTasksRaw, refetch: refetchTasks, isLoading: isTasksLoading } = useCollection<Task>(
     user ? 'tasks' : null,
     [
         { column: 'user_id', operator: 'eq', value: user?.id }
@@ -314,44 +315,54 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   }, [user, selectedPet, dbModuleProgress, supabase, refetchModuleProgress]);
 
   const addTask = useCallback(async (label: string) => {
-    if (!user) return;
-    const { error } = await supabase.from('tasks').insert({
+    if (!user) throw new Error("Debes iniciar sesión para añadir tareas.");
+    const trimmed = label.trim();
+    if (!trimmed) throw new Error("La tarea no puede estar vacía.");
+
+    const payload: Record<string, any> = {
       user_id: user.id,
-      label,
+      label: trimmed,
       done: false,
       createdAt: new Date().toISOString()
-    });
+    };
+    // Incluir pet_id si hay mascota seleccionada (evita fallos RLS)
+    if (selectedPet?.id) payload.pet_id = selectedPet.id;
+
+    const { data, error } = await supabase.from('tasks').insert(payload).select().single();
     if (error) {
       await logError("addTask", error);
-      throw new Error(error.message || "Error de base de datos");
+      throw new Error(error.message || "Error de base de datos al guardar la tarea.");
     }
     await refetchTasks();
+    return data;
   }, [user, selectedPet, supabase, refetchTasks]);
 
   const toggleTaskCompletion = useCallback(async (taskId: string) => {
     const task = tasks.find(t => t.id === taskId);
-    if (task) {
-      try {
-          const { error } = await supabase.from('tasks').update({ done: !task.done }).eq('id', taskId);
-          if (error) throw error;
-          
-          // FASE 4: Auto-completar semana del curso si la tarea viene de Mis Cursos
-          if (!task.done && task.label.startsWith('[M')) {
-              const match = task.label.match(/\[M(\d+)-S(\d+)\]/);
-              if (match) {
-                  const mId = `m${match[1]}`;
-                  const wId = `w${match[1]}_${match[2]}`;
-                  await toggleWeekCompletion(mId, wId, false, true); // forceComplete = true
-              }
-          }
+    if (!task) return;
+    try {
+      const { error } = await supabase.from('tasks').update({ done: !task.done }).eq('id', taskId);
+      if (error) throw error;
 
-          await refetchTasks();
-      } catch (error: any) {
-          await logError("toggleTaskCompletion", error);
-          throw new Error(error.message || "Error al actualizar la tarea");
+      // Auto-completar semana del curso si la tarea viene de Mis Cursos
+      if (!task.done && task.label.startsWith('[M')) {
+        const match = task.label.match(/\[M(\d+)-S(\d+)\]/);
+        if (match) {
+          const mId = `m${match[1]}`;
+          const wId = `w${match[1]}_${match[2]}`;
+          try {
+            await toggleWeekCompletion(mId, wId, false, true);
+          } catch (weekErr: any) {
+            await logError("toggleTaskCompletion.weekSync", weekErr);
+          }
+        }
       }
+      await refetchTasks();
+    } catch (error: any) {
+      await logError("toggleTaskCompletion", error);
+      throw new Error(error.message || "Error al actualizar la tarea");
     }
-  }, [tasks, supabase, refetchTasks]);
+  }, [tasks, supabase, refetchTasks, toggleWeekCompletion]);
 
   const toggleAchievementCompletion = useCallback(async (achievementId: string) => {
     if (!user || !selectedPet) return;
@@ -412,11 +423,11 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   }, [user, selectedPet, supabase, refetchPets]);
 
   const value = useMemo(() => ({
-    progress, modules, tasks, uploads, achievements, pets, selectedPet, user, userProfile, isAdmin,
+    progress, modules, tasks, isTasksLoading, uploads, achievements, pets, selectedPet, user, userProfile, isAdmin,
     addPetOpen, setAddPetOpen,
     selectPet, addPet, toggleWeekCompletion, toggleTaskCompletion, addTask, toggleAchievementCompletion,
     updateDogPhoto, uploadVideo, deleteVideo, refetchUploads
-  }), [progress, modules, tasks, uploads, achievements, pets, selectedPet, user, userProfile, isAdmin, addPetOpen, selectPet, addPet, toggleWeekCompletion, toggleTaskCompletion, addTask, toggleAchievementCompletion, updateDogPhoto, uploadVideo, deleteVideo, refetchUploads]);
+  }), [progress, modules, tasks, isTasksLoading, uploads, achievements, pets, selectedPet, user, userProfile, isAdmin, addPetOpen, selectPet, addPet, toggleWeekCompletion, toggleTaskCompletion, addTask, toggleAchievementCompletion, updateDogPhoto, uploadVideo, deleteVideo, refetchUploads]);
 
   if (!isMounted || isUserLoading) return <div className="flex h-screen items-center justify-center bg-black"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
 

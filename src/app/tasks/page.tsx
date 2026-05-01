@@ -1,574 +1,352 @@
 "use client";
-
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Header } from "@/components/dashboard/header";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { Sidebar, SidebarProvider } from "@/components/ui/sidebar";
 import { useAppState } from "@/context/app-state-provider";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, ListPlus, Video, Play, Calendar, HardDrive, Upload, Loader2, CheckCircle2, AlertCircle, MessageCircle, Info, Medal, Compass, Quote, Sparkles, Trophy, ChevronRight, ArrowRight } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { PlusCircle, ListPlus, Video, Upload, Loader2, CheckCircle2, AlertCircle, Info, Sparkles, Calendar, MessageCircle, Compass, Medal, Quote, ChevronRight, Trophy, ClipboardList, Film } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { v4 as uuidv4 } from 'uuid';
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-const suggestedTasks = [
-    "Mindfulness: Sesión de calma y respiración de 5 minutos.",
-    "Apego Seguro: Practicar el contacto visual durante el paseo.",
-    "Normas: Repasar el comando 'sentado' antes de recibir comida.",
-    "Autocontrol: Ejercicio de 'quieto' mientras se deja un premio en el suelo.",
-    "Desensibilización: Poner sonidos de la calle a volumen bajo durante 5 minutos.",
-    "Adaptación: Realizar un paseo por una ruta ligeramente diferente a la habitual.",
-    "Mindfulness: Paseo de olfateo, dejando que tu perro guíe el camino.",
-    "Apego Seguro: Juego de 'llamada y ven' dentro de casa con refuerzo positivo.",
-    "Normas: Practicar el no tirar de la correa en un tramo corto y conocido.",
-    "Autocontrol: Esperar la señal verbal antes de salir por la puerta."
+const SUGGESTIONS = [
+  "Mindfulness: Sesión de calma y respiración de 5 min.",
+  "Apego Seguro: Contacto visual sostenido en el paseo.",
+  "Normas: Repasar 'sentado' antes de cada comida.",
+  "Autocontrol: 'Quieto' con premio en el suelo.",
+  "Desensibilización: Sonidos urbanos a volumen bajo.",
+  "Adaptación: Paseo por ruta nueva y diferente.",
+  "Mindfulness: Paseo de olfateo libre sin corrección.",
+  "Apego Seguro: Juego de llamada y ven en casa.",
+  "Normas: Correa suelta en tramo corto conocido.",
+  "Autocontrol: Esperar señal verbal antes de salir.",
+  "Socialización: Exposición controlada a otro perro tranquilo.",
+  "Obediencia: Practicar 'junto' en distancias cortas.",
+  "Confianza: Juego de escondite dentro de casa.",
+  "Manejo emocional: Ignorar ladrido por atención 3 min.",
+  "Enriquecimiento: Lickmat o Kong relleno para calma.",
+  "Caminata estructurada: 15 min sin tirones, foco total.",
+  "Vínculo: Cepillado consciente con contacto visual.",
+  "Impulso: Esperar 5 seg antes de comer su plato.",
+  "Resiliencia: Permanecer en su lugar con distracción.",
+  "Liderazgo: Pasar por puertas antes que el perro.",
+  "Exploración: Visita corta a lugar nuevo (parque, tienda).",
+  "Relajación: Masaje de orejas y pecho 5 minutos.",
+  "Coordinación: Slalom entre conos o sillas.",
+  "Paciencia: Ejercicio de 'espera' progresivo (10-30 seg).",
+  "Comunicación: Responder a señales de calma del perro.",
+  "Energía: Trote ligero de 10 min antes de entrenar.",
+  "Independencia: Dejar al perro solo en habitación 5 min.",
+  "Precisión: Marca con clicker 10 conductas correctas.",
+  "Foco avanzado: Contacto visual de 10 seg con distracción.",
+  "Gratitud: Sesión de juego libre como refuerzo final.",
 ];
 
-export default function TasksPage() {
-    const { tasks, addTask, toggleTaskCompletion, uploads, user, userProfile, uploadVideo } = useAppState();
-    const [newTaskLabel, setNewTaskLabel] = useState("");
-    const [popoverOpen, setPopoverOpen] = useState(false);
-    const [isUploading, setIsUploading] = useState(false);
-    const [uploadingFileName, setUploadingFileName] = useState("");
-    const [isAddingTask, setIsAddingTask] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const { toast, dismiss } = useToast();
+type SaveState = "idle" | "saving" | "success" | "error";
+type TabView = "tasks" | "videos";
 
-    const handleUploadClick = () => {
-        fileInputRef.current?.click();
-    };
+function AddTaskDialog({ onTaskAdded }: { onTaskAdded: () => void }) {
+  const { tasks, addTask } = useAppState();
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [label, setLabel] = useState("");
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
+  useEffect(() => { if (open) { setLabel(""); setSaveState("idle"); setErrorMsg(""); setTimeout(() => inputRef.current?.focus(), 100); } }, [open]);
 
-        // Validation: File type (Video only)
-        if (!file.type.startsWith('video/')) {
-            toast({
-                variant: "destructive",
-                title: "Formato no válido",
-                description: "Por favor, selecciona un archivo de video (MP4, MOV, etc.).",
-            });
-            return;
-        }
+  const isDuplicate = (t: string) => tasks.some(x => x.label.toLowerCase() === t.toLowerCase() && !x.done);
 
-        // Validation: File size (Max 100MB)
-        const MAX_SIZE_MB = 100;
-        const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
-        if (file.size > MAX_SIZE_BYTES) {
-            toast({
-                variant: "destructive",
-                title: "Archivo demasiado grande",
-                description: `El tamaño máximo permitido es de ${MAX_SIZE_MB}MB.`,
-            });
-            return;
-        }
-
-        const validateVideo = (videoFile: File): Promise<{ isValid: boolean; error?: string }> => {
-            return new Promise((resolve) => {
-                const video = document.createElement('video');
-                video.preload = 'metadata';
-                video.onloadedmetadata = () => {
-                    URL.revokeObjectURL(video.src);
-                    const duration = video.duration;
-                    const width = video.videoWidth;
-                    const height = video.videoHeight;
-                    if (duration > 300) {
-                        resolve({ isValid: false, error: `El video dura ${Math.round(duration)}s. El máximo permitido es de 5 minutos.` });
-                        return;
-                    }
-                    const maxDim = Math.max(width, height);
-                    const minDim = Math.min(width, height);
-                    if (maxDim > 1920 || minDim > 1080) {
-                        resolve({ isValid: false, error: `La resolución es ${width}x${height}. El máximo permitido es 1080p (1920x1080).` });
-                        return;
-                    }
-                    resolve({ isValid: true });
-                };
-                video.onerror = () => {
-                    URL.revokeObjectURL(video.src);
-                    resolve({ isValid: false, error: "El archivo de video está corrupto o no se puede leer." });
-                };
-                video.src = URL.createObjectURL(videoFile);
-            });
-        };
-
-        const validationResult = await validateVideo(file);
-        if (!validationResult.isValid) {
-            toast({
-                variant: "destructive",
-                title: "Video no válido",
-                description: validationResult.error,
-            });
-            if (fileInputRef.current) fileInputRef.current.value = '';
-            return;
-        }
-
-        if (!user) {
-            toast({ variant: "destructive", title: "Error de autenticación", description: "Debes iniciar sesión para subir archivos." });
-            return;
-        }
-
-        const { id: toastId, update: updateToast } = toast({ title: "Iniciando subida...", description: `Preparando "${file.name}" para la subida.` });
-
-        try {
-            setIsUploading(true);
-            setUploadingFileName(file.name);
-            updateToast({ title: "Subiendo archivo...", description: `No cierres esta ventana...` });
-            await uploadVideo(file);
-            dismiss(toastId);
-            toast({ title: "¡Subida completada!", description: `"${file.name}" se ha subido correctamente.` });
-        } catch (error: any) {
-            dismiss(toastId);
-            toast({ variant: "destructive", title: "Error en la subida", description: error.message || "No se pudo subir el archivo." });
-        } finally {
-            setIsUploading(false);
-            setUploadingFileName("");
-            if (fileInputRef.current) fileInputRef.current.value = '';
-        }
-    };
-
-    const handleAddTask = async (labelOverride?: string) => {
-        const finalLabel = (labelOverride || newTaskLabel).trim();
-        
-        // FASE 2: Validaciones robustas
-        if (!finalLabel) {
-            toast({ variant: "destructive", title: "Campo vacío", description: "Por favor, escribe o selecciona una tarea de las sugerencias." });
-            return;
-        }
-        if (finalLabel.length < 5) {
-            toast({ variant: "destructive", title: "Texto muy corto", description: "La tarea debe ser más descriptiva para ser efectiva." });
-            return;
-        }
-        
-        // Prevención de duplicados (insensible a mayúsculas)
-        const isDuplicate = tasks.some(t => t.label.toLowerCase() === finalLabel.toLowerCase() && !t.done);
-        if (isDuplicate) {
-            toast({ variant: "destructive", title: "Tarea duplicada", description: "Ya tienes esta tarea pendiente de realizar." });
-            return;
-        }
-
-        setIsAddingTask(true);
-        try {
-            await addTask(finalLabel);
-            setNewTaskLabel("");
-            setPopoverOpen(false); // Cerramos el Dialog
-            // FASE 3: Feedback visual de éxito
-            toast({ title: "Tarea registrada", description: `¡"${finalLabel}" añadida con éxito a tu lista!`, className: "bg-green-600 border-none text-white font-bold" });
-        } catch (error: any) {
-            // FASE 6: Manejo de errores visual
-            toast({ variant: "destructive", title: "Error al registrar", description: error.message || "No se pudo sincronizar con la base de datos." });
-        } finally {
-            setIsAddingTask(false);
-        }
-    };
-    
-    // Eliminamos handleAddSuggestedTask y unificamos con handleAddTask(labelOverride) para mejor DRY
-
-    const handleToggleTask = async (taskId: string) => {
-        try {
-            await toggleTaskCompletion(taskId);
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Error al actualizar tarea", description: error.message || "No se pudo sincronizar el cambio." });
-        }
+  const handleSave = async () => {
+    const t = label.trim();
+    if (!t) { setErrorMsg("Escribe o selecciona una tarea."); setSaveState("error"); return; }
+    if (t.length < 5) { setErrorMsg("Mínimo 5 caracteres."); setSaveState("error"); return; }
+    if (isDuplicate(t)) { setErrorMsg("Ya tienes esta tarea pendiente."); setSaveState("error"); return; }
+    setSaveState("saving"); setErrorMsg("");
+    try {
+      await addTask(t);
+      setSaveState("success");
+      onTaskAdded();
+      setTimeout(() => { setOpen(false); setSaveState("idle"); setLabel(""); }, 1000);
+    } catch (err: any) {
+      setErrorMsg(err?.message || "Error al guardar."); setSaveState("error");
+      toast({ variant: "destructive", title: "Error", description: err?.message });
     }
+  };
 
-    const formatSize = (bytes?: number) => {
-        if (!bytes) return '0 B';
-        const k = 1024;
-        const sizes = ['B', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    };
-
-    const getStatusConfig = (status?: string) => {
-        switch(status) {
-            case 'approved': return { color: 'bg-green-500/10 text-green-500 border-green-500/20', icon: <CheckCircle2 className="w-3 h-3 mr-1" />, label: 'Aprobado' };
-            case 'improve': return { color: 'bg-red-500/10 text-red-500 border-red-500/20', icon: <AlertCircle className="w-3 h-3 mr-1" />, label: 'Para corregir' };
-            case 'reviewed': return { color: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: <Info className="w-3 h-3 mr-1" />, label: 'Revisado' };
-            default: return { color: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20', icon: <Loader2 className="w-3 h-3 mr-1 animate-spin" />, label: 'En revisión' };
-        }
-    };
-
-    return (
-        <SidebarProvider>
-            <div className="min-h-screen lg:grid lg:grid-cols-[auto_1fr]">
-                <Sidebar className="hidden border-e bg-card lg:block" collapsible="icon">
-                    <SidebarNav />
-                </Sidebar>
-                <div className="flex flex-col">
-                    <Header />
-                    <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-8">
-                        <div className="space-y-4">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                <div>
-                                    <h1 className="text-3xl font-extrabold tracking-tight">Tareas MANADA</h1>
-                                    <p className="text-muted-foreground text-sm mt-1">Organiza tus prácticas diarias y conecta con los pilares del método.</p>
-                                </div>
-                                <Dialog open={popoverOpen} onOpenChange={setPopoverOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button className="rounded-full px-6 py-6 shadow-xl shadow-primary/30 hover:scale-105 transition-transform text-md font-bold group">
-                                            <PlusCircle className="mr-2 h-5 w-5 group-hover:rotate-90 transition-transform" /> Nueva Tarea Diaria
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="w-[95vw] max-w-lg rounded-[2rem] p-0 overflow-hidden border-primary/20 shadow-2xl bg-gradient-to-b from-card to-card/95">
-                                        <div className="p-6 md:p-8 bg-primary/5 border-b border-primary/10">
-                                            <DialogTitle className="text-2xl md:text-3xl font-black flex items-center gap-3">
-                                                <Sparkles className="h-7 w-7 text-primary" />
-                                                Registrar Práctica
-                                            </DialogTitle>
-                                            <DialogDescription className="text-sm mt-2 text-muted-foreground/80">
-                                                Diseña tu entrenamiento de hoy. Elige una sugerencia o escribe la tuya propia.
-                                            </DialogDescription>
-                                        </div>
-                                        
-                                        <div className="p-6 md:p-8 space-y-8">
-                                            {/* Paso 1: Selección Rápida (Chips) */}
-                                            <div className="space-y-4">
-                                                <Label className="text-[10px] md:text-xs uppercase tracking-widest font-black text-primary/70">1. Sugerencias Rápidas</Label>
-                                                <div className="flex flex-wrap gap-2 max-h-[140px] overflow-y-auto custom-scrollbar pr-2 pb-1">
-                                                    {suggestedTasks.map((suggestion, index) => (
-                                                        <button
-                                                            key={index}
-                                                            onClick={() => setNewTaskLabel(suggestion)}
-                                                            className="text-left text-xs md:text-sm font-medium bg-muted/50 hover:bg-primary/10 hover:text-primary transition-all border border-transparent hover:border-primary/30 rounded-full px-4 py-2 hover:scale-[1.02] active:scale-95"
-                                                        >
-                                                            {suggestion.length > 50 ? suggestion.substring(0, 50) + '...' : suggestion}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            {/* Paso 2: Entrada Inteligente */}
-                                            <div className="space-y-4">
-                                                <Label className="text-[10px] md:text-xs uppercase tracking-widest font-black text-primary/70">2. Detalle de la Tarea</Label>
-                                                <div className="relative group/input">
-                                                    <Input
-                                                        type="text"
-                                                        placeholder="Ej: Caminar 10 min en foco..."
-                                                        value={newTaskLabel}
-                                                        onChange={(e) => setNewTaskLabel(e.target.value)}
-                                                        onKeyPress={(e) => e.key === 'Enter' && handleAddTask()}
-                                                        className="rounded-2xl bg-muted/80 border-primary/20 pl-5 pr-12 py-7 text-base md:text-lg font-medium shadow-inner focus-visible:ring-primary/50 focus-visible:bg-background transition-all"
-                                                        disabled={isAddingTask}
-                                                    />
-                                                    {newTaskLabel.trim() && (
-                                                        <button 
-                                                            onClick={() => setNewTaskLabel('')}
-                                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-destructive p-2 rounded-full hover:bg-destructive/10 transition-colors"
-                                                            title="Limpiar"
-                                                        >
-                                                            <AlertCircle className="h-5 w-5" />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            {/* Paso 3: Confirmación Inmediata */}
-                                            <div className="pt-4">
-                                                <Button 
-                                                    onClick={() => handleAddTask()} 
-                                                    disabled={!newTaskLabel.trim() || isAddingTask} 
-                                                    className="w-full rounded-2xl py-7 text-lg font-black shadow-xl shadow-primary/25 transition-all active:scale-95 group/btn relative overflow-hidden"
-                                                >
-                                                    {isAddingTask ? (
-                                                        <>
-                                                            <Loader2 className="mr-3 h-6 w-6 animate-spin" /> Guardando en Supabase...
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300 ease-out" />
-                                                            <CheckCircle2 className="mr-3 h-6 w-6 group-hover/btn:scale-125 transition-transform" /> Confirmar y Guardar Tarea
-                                                        </>
-                                                    )}
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <AnimatePresence mode="popLayout">
-                                    {tasks.length > 0 ? (
-                                        tasks.map((task) => (
-                                            <motion.div 
-                                                layout
-                                                initial={{ opacity: 0, scale: 0.95 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                exit={{ opacity: 0, scale: 0.95 }}
-                                                key={task.id} 
-                                                onClick={() => handleToggleTask(task.id)}
-                                                className={cn(
-                                                    "group relative flex items-center p-4 rounded-2xl border transition-all cursor-pointer select-none",
-                                                    task.done ? "bg-muted/30 border-primary/5 grayscale opacity-60" : "bg-card border-primary/10 hover:border-primary/40 hover:shadow-md active:scale-[0.98]"
-                                                )}
-                                            >
-                                                <div className={cn(
-                                                    "h-10 w-10 rounded-full flex items-center justify-center mr-4 transition-colors",
-                                                    task.done ? "bg-green-500/20 text-green-500" : "bg-primary/10 text-primary group-hover:bg-primary/20"
-                                                )}>
-                                                    {task.done ? <CheckCircle2 className="h-5 w-5" /> : <ListPlus className="h-5 w-5" />}
-                                                </div>
-                                                <div className="flex-1 overflow-hidden">
-                                                    <p className={cn("text-sm font-bold truncate transition-all", task.done ? "line-through text-muted-foreground" : "text-foreground")}>
-                                                        {task.label}
-                                                    </p>
-                                                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mt-1">
-                                                        {task.done ? 'Completado' : 'Pendiente'}
-                                                    </p>
-                                                </div>
-                                            </motion.div>
-                                        ))
-                                    ) : (
-                                        <div className="col-span-full py-12 text-center border-2 border-dashed rounded-3xl bg-muted/5">
-                                            <CheckCircle2 className="mx-auto h-10 w-10 text-muted-foreground/30 mb-3" />
-                                            <p className="font-bold text-muted-foreground">¡Todo listo! No hay tareas pendientes.</p>
-                                        </div>
-                                    )}
-                                </AnimatePresence>
-                            </div>
-                        </div>
-
-                        <div className="space-y-4 pt-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h2 className="text-2xl font-bold tracking-tight">Videos de Práctica</h2>
-                                    <p className="text-muted-foreground text-xs font-medium">Tus evidencias enviadas para revisión experta.</p>
-                                </div>
-                                <Button onClick={handleUploadClick} variant="outline" className="rounded-full border-primary/20 hover:bg-primary/5 gap-2">
-                                    <Upload className="h-4 w-4" /> Subir Video
-                                </Button>
-                                <input type="file" ref={fileInputRef} className="hidden" accept="video/*" onChange={handleFileChange} />
-                            </div>
-
-                            {isUploading && (
-                                <motion.div 
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="p-6 rounded-3xl border-2 border-primary/20 bg-primary/5 text-center space-y-4 relative overflow-hidden"
-                                >
-                                    <div className="relative z-10 flex flex-col items-center gap-4">
-                                        <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                                            <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                                        </div>
-                                        <h4 className="font-extrabold text-lg">Subiendo {uploadingFileName}...</h4>
-                                        <div className="w-full max-w-[200px] h-1.5 bg-primary/10 rounded-full overflow-hidden">
-                                            <div className="h-full bg-primary w-1/3 rounded-full animate-progress-loading" />
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
-                            
-                            {uploads && uploads.length > 0 ? (
-                                <div className="max-w-4xl mx-auto space-y-12 pb-20">
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: -20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="relative p-8 rounded-[3rem] bg-gradient-to-br from-primary/10 via-black to-black border border-primary/20 overflow-hidden group shadow-[0_0_50px_rgba(252,196,25,0.05)]"
-                                    >
-                                        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                                            <Trophy className="h-32 w-32 text-primary" />
-                                        </div>
-                                        <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
-                                            <div className="relative h-32 w-32 flex items-center justify-center">
-                                                <svg className="h-full w-full -rotate-90 transform">
-                                                    <circle className="text-white/5" strokeWidth="8" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64" />
-                                                    <circle className="text-primary" strokeWidth="8" strokeDasharray="165, 365" strokeDashcap="round" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64" />
-                                                </svg>
-                                                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                                    <span className="text-3xl font-black text-white">75%</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex-1 text-center md:text-left">
-                                                <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tight">Nivel: Perro Confiable</h3>
-                                                <p className="text-sm text-foreground/60 max-w-md">Has mejorado un 15% en tu timing esta semana. ¡Sigue así!</p>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-
-                                    <div className="relative space-y-12">
-                                        <div className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-gradient-to-b from-primary/40 via-primary/5 to-transparent -translate-x-1/2 hidden md:block" />
-
-                                        <AnimatePresence>
-                                            {uploads.map((upload, index) => {
-                                                const statusConf = getStatusConfig(upload.status);
-                                                return (
-                                                    <Dialog key={upload.id}>
-                                                        <DialogTrigger asChild>
-                                                            <motion.div 
-                                                                layout
-                                                                initial={{ opacity: 0, scale: 0.95 }}
-                                                                animate={{ opacity: 1, scale: 1 }}
-                                                                className={cn(
-                                                                    "group relative md:w-[48%] flex flex-col",
-                                                                    index % 2 === 0 ? "md:mr-auto" : "md:ml-auto"
-                                                                )}
-                                                            >
-                                                                <div className="absolute left-[50%] top-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-primary shadow-[0_0_15px_rgba(252,196,25,0.8)] border-4 border-black z-20 hidden md:flex items-center justify-center">
-                                                                    <div className="h-0.5 w-8 bg-primary/20 absolute right-full" />
-                                                                </div>
-
-                                                                <div className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 backdrop-blur-xl transition-all hover:border-primary/50 hover:shadow-[0_0_40px_rgba(252,196,25,0.05)] cursor-pointer group">
-                                                                    <div className="p-6 sm:p-8 space-y-6">
-                                                                        <div className="flex justify-between items-start">
-                                                                            <div className="space-y-1">
-                                                                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-60">
-                                                                                    <Calendar className="h-3 w-3 text-primary" />
-                                                                                    {upload.createdAt ? new Date(upload.createdAt).toLocaleDateString() : 'Hoy'}
-                                                                                </div>
-                                                                                <h4 className="text-lg font-black text-white group-hover:text-primary transition-colors leading-tight uppercase">{upload.name}</h4>
-                                                                            </div>
-                                                                            <Badge variant="outline" className={cn("px-4 py-1.5 border-none shadow-xl text-[9px] font-black uppercase tracking-widest ring-1 ring-white/10", statusConf.color)}>
-                                                                                {statusConf.label}
-                                                                            </Badge>
-                                                                        </div>
-
-                                                                        <div className="flex items-center gap-3 p-4 rounded-3xl bg-white/[0.03] border border-white/[0.05]">
-                                                                            <Avatar className="h-8 w-8 ring-2 ring-primary/20 ring-offset-2 ring-offset-black">
-                                                                                <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${upload.feedback_detail?.evaluatorName || 'Ricardo'}`} />
-                                                                                <AvatarFallback>RE</AvatarFallback>
-                                                                            </Avatar>
-                                                                            <div className="flex-1">
-                                                                                <p className="text-xs font-black text-foreground/80 leading-none mb-1">{upload.feedback_detail?.evaluatorName || "Especialista"}</p>
-                                                                                <p className="text-[9px] font-black uppercase text-primary/60 tracking-widest">{upload.feedback_detail?.evaluatorRole || "Tutor Evaluador"}</p>
-                                                                            </div>
-                                                                            <ChevronRight className="h-4 w-4 text-primary/40 group-hover:translate-x-1 transition-transform" />
-                                                                        </div>
-
-                                                                        <div className="grid grid-cols-3 gap-2">
-                                                                            {[
-                                                                                { label: 'Foco', val: upload.feedback_detail?.foco || 0 },
-                                                                                { label: 'Timing', val: upload.feedback_detail?.timing || 0 },
-                                                                                { label: 'Técnica', val: upload.feedback_detail?.tecnica || 0 }
-                                                                            ].map(m => (
-                                                                                <div key={m.label} className="space-y-1.5">
-                                                                                    <div className="flex justify-between text-[8px] font-black uppercase tracking-widest text-muted-foreground">
-                                                                                        <span>{m.label}</span>
-                                                                                        <span className="text-primary">{m.val}%</span>
-                                                                                    </div>
-                                                                                    <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                                                                                        <div className="h-full bg-primary shadow-[0_0_8px_rgba(252,196,25,0.5)]" style={{ width: `${m.val}%` }} />
-                                                                                    </div>
-                                                                                </div>
-                                                                            ))}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </motion.div>
-                                                        </DialogTrigger>
-                                                        <DialogContent className="w-[98vw] sm:max-w-[1000px] p-0 overflow-hidden bg-black border-none shadow-[0_0_100px_rgba(0,0,0,1)] rounded-[2rem] sm:rounded-[4rem] max-h-[92vh] sm:max-h-[95vh] flex flex-col ring-1 ring-white/5">
-                                                            <div className="flex flex-col md:grid md:grid-cols-[1.2fr_1fr] h-full overflow-hidden">
-                                                                <div className="h-[35vh] md:h-auto w-full flex items-center justify-center bg-black relative shrink-0 border-b border-white/5 md:border-none">
-                                                                    <video 
-                                                                        src={upload.url} 
-                                                                        controls 
-                                                                        playsInline 
-                                                                        webkit-playsinline="true"
-                                                                        className="max-h-full max-w-full" 
-                                                                        autoPlay 
-                                                                    />
-                                                                </div>
-                                                                <div className="flex flex-col flex-1 min-h-0 overflow-hidden bg-card">
-                                                                    <DialogHeader className="p-5 sm:p-8 pb-4 border-b bg-muted/20 shrink-0 bg-card/95 backdrop-blur-md">
-                                                                        <div className="flex justify-between items-start mb-3">
-                                                                            <Badge variant="outline" className={`px-3 py-1 border-none shadow-sm ${statusConf.color}`}>
-                                                                                {statusConf.icon} {statusConf.label}
-                                                                            </Badge>
-                                                                        </div>
-                                                                        <DialogTitle className="text-lg sm:text-xl font-extrabold leading-tight">{upload.name}</DialogTitle>
-                                                                    </DialogHeader>
-                                                                    <div className="p-5 sm:p-8 overflow-y-auto flex-1 custom-scrollbar">
-                                                                        <h4 className="text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2 mb-6 text-primary">
-                                                                            <MessageCircle className="h-4 w-4" /> EVALUACIÓN PROFESIONAL
-                                                                        </h4>
-                                                                        {upload.feedback_detail ? (
-                                                                            <div className="space-y-6">
-                                                                                <div className="flex items-center gap-3 p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                                                                                    <Avatar className="h-10 w-10 border-2 border-primary/20">
-                                                                                        <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${upload.feedback_detail.evaluatorName || 'Ricardo'}`} />
-                                                                                        <AvatarFallback>RE</AvatarFallback>
-                                                                                    </Avatar>
-                                                                                    <div>
-                                                                                        <p className="text-sm font-bold">{upload.feedback_detail.evaluatorName || "Ricardo"}</p>
-                                                                                        <p className="text-[10px] font-black uppercase text-primary/70">{upload.feedback_detail.evaluatorRole || "Tutor Evaluador"}</p>
-                                                                                    </div>
-                                                                                </div>
-                                                                                <div className="relative p-6 rounded-2xl border border-white/10 bg-white/[0.03]">
-                                                                                    <Quote className="h-8 w-8 text-primary/20 absolute -top-3 -left-2 rotate-12" />
-                                                                                    <p className="text-sm sm:text-base italic font-bold">"{upload.feedback_detail.comments}"</p>
-                                                                                </div>
-                                                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                                                                    {[
-                                                                                        { label: 'FOCO', value: upload.feedback_detail.foco, icon: <Compass className="h-4 w-4" /> },
-                                                                                        { label: 'TIMING', value: upload.feedback_detail.timing, icon: <Loader2 className="h-4 w-4" /> },
-                                                                                        { label: 'TÉCNICA', value: upload.feedback_detail.tecnica, icon: <Medal className="h-4 w-4" /> }
-                                                                                    ].map((m) => (
-                                                                                        <div key={m.label} className="p-4 bg-white/[0.02] rounded-3xl border border-white/[0.05]">
-                                                                                            <div className="flex justify-between items-center mb-2">
-                                                                                                <div className="p-2 bg-primary/10 rounded-xl text-primary">{m.icon}</div>
-                                                                                                <span className="text-lg font-black text-primary">{m.value}%</span>
-                                                                                            </div>
-                                                                                            <p className="text-[9px] font-black uppercase text-muted-foreground">{m.label}</p>
-                                                                                        </div>
-                                                                                    ))}
-                                                                                </div>
-                                                                                {upload.feedback_detail.nextSteps && (
-                                                                                    <div className="space-y-4 pt-4">
-                                                                                        <h5 className="text-[10px] font-black uppercase text-primary px-4 py-1.5 bg-primary/10 rounded-full border border-primary/20 inline-block">PRÓXIMOS PASOS</h5>
-                                                                                        <div className="grid gap-2">
-                                                                                            {upload.feedback_detail.nextSteps.map((step, i) => (
-                                                                                                <div key={i} className="flex gap-3 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.05]">
-                                                                                                    <div className="h-6 w-6 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-[10px] font-black text-primary">{i+1}</div>
-                                                                                                    <p className="text-sm font-bold text-foreground/80">{step}</p>
-                                                                                                </div>
-                                                                                            ))}
-                                                                                        </div>
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
-                                                                        ) : upload.feedback ? (
-                                                                            <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 text-sm font-bold">
-                                                                                {upload.feedback}
-                                                                            </div>
-                                                                        ) : (
-                                                                            <div className="text-center py-10 opacity-30">
-                                                                                <Info className="h-10 w-10 mx-auto mb-3" />
-                                                                                <p className="text-xs font-black uppercase">SIN REVISIÓN</p>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </DialogContent>
-                                                    </Dialog>
-                                                );
-                                            })}
-                                        </AnimatePresence>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="text-center py-20 border-2 border-dashed rounded-[3rem] bg-muted/5 border-primary/20">
-                                    <Video className="h-10 w-10 text-primary mx-auto mb-4" />
-                                    <h3 className="font-black text-xl mb-2">Aún no hay evidencias</h3>
-                                    <Button className="mt-8 rounded-full px-10" onClick={handleUploadClick}>
-                                        <Upload className="mr-2 h-4 w-4" /> Seleccionar Video
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                    </main>
-                </div>
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="rounded-full px-6 py-6 shadow-xl shadow-primary/30 hover:scale-105 transition-transform font-bold gap-2">
+          <PlusCircle className="h-5 w-5" /> Nueva Tarea
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="w-[95vw] max-w-lg rounded-[2rem] p-0 overflow-hidden border-primary/20 shadow-2xl">
+        <div className="p-6 bg-primary/5 border-b border-primary/10">
+          <DialogTitle className="text-2xl font-black flex items-center gap-3"><Sparkles className="h-7 w-7 text-primary" /> Registrar Práctica</DialogTitle>
+          <DialogDescription className="text-sm mt-1 text-muted-foreground">Elige una sugerencia o escribe tu propia tarea.</DialogDescription>
+        </div>
+        <div className="p-6 space-y-6">
+          <div className="space-y-3">
+            <Label className="text-[10px] uppercase tracking-widest font-black text-primary/70">1 · Sugerencias rápidas</Label>
+            <div className="flex flex-wrap gap-2 max-h-[160px] overflow-y-auto pr-1 custom-scrollbar">
+              {SUGGESTIONS.map((s, i) => (
+                <button key={i} onClick={() => { setLabel(s); setErrorMsg(""); setSaveState("idle"); inputRef.current?.focus(); }}
+                  disabled={saveState === "saving" || saveState === "success"}
+                  className={cn("text-left text-xs font-medium rounded-full px-3 py-1.5 transition-all border hover:bg-primary/10 hover:text-primary hover:border-primary/30 active:scale-95",
+                    label === s ? "bg-primary/15 text-primary border-primary/40 font-bold" : "bg-muted/50 border-transparent")}>
+                  {s.length > 48 ? s.slice(0, 48) + "…" : s}
+                </button>
+              ))}
             </div>
-        </SidebarProvider>
-    );
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[10px] uppercase tracking-widest font-black text-primary/70">2 · Detalle</Label>
+            <Input ref={inputRef} value={label} onChange={e => { setLabel(e.target.value); setErrorMsg(""); setSaveState("idle"); }}
+              onKeyDown={e => e.key === "Enter" && handleSave()} placeholder="Ej: Caminar 10 min en foco..."
+              disabled={saveState === "saving" || saveState === "success"}
+              className={cn("rounded-2xl pl-5 pr-12 py-6 text-base font-medium", saveState === "error" && "border-destructive")} />
+            <AnimatePresence>{errorMsg && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-xs text-destructive font-bold flex items-center gap-1 pt-1"><AlertCircle className="h-3.5 w-3.5" /> {errorMsg}</motion.p>}</AnimatePresence>
+          </div>
+          <Button onClick={handleSave} disabled={!label.trim() || saveState === "saving" || saveState === "success"}
+            className={cn("w-full rounded-2xl py-6 text-base font-black active:scale-95", saveState === "success" && "bg-green-600 hover:bg-green-600")}>
+            {saveState === "saving" ? <><Loader2 className="h-5 w-5 animate-spin mr-2" /> Guardando...</> :
+              saveState === "success" ? <><CheckCircle2 className="h-5 w-5 mr-2" /> ¡Guardada!</> :
+                <><CheckCircle2 className="h-5 w-5 mr-2" /> Confirmar y Guardar</>}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const getStatusConfig = (s?: string) => {
+  if (s === "approved") return { color: "bg-green-500/10 text-green-500", icon: <CheckCircle2 className="w-3 h-3 mr-1" />, label: "Aprobado" };
+  if (s === "improve") return { color: "bg-red-500/10 text-red-500", icon: <AlertCircle className="w-3 h-3 mr-1" />, label: "Corregir" };
+  if (s === "reviewed") return { color: "bg-blue-500/10 text-blue-500", icon: <Info className="w-3 h-3 mr-1" />, label: "Revisado" };
+  return { color: "bg-yellow-500/10 text-yellow-600", icon: <Loader2 className="w-3 h-3 mr-1 animate-spin" />, label: "En revisión" };
+};
+
+export default function TasksPage() {
+  const { tasks, isTasksLoading, toggleTaskCompletion, uploads, uploadVideo, user } = useAppState();
+  const { toast } = useToast();
+  const [tab, setTab] = useState<TabView>("tasks");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadName, setUploadName] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [toggling, setToggling] = useState<string | null>(null);
+
+  const handleToggle = async (id: string) => {
+    if (toggling) return;
+    setToggling(id);
+    try { await toggleTaskCompletion(id); } catch (e: any) { toast({ variant: "destructive", title: "Error", description: e.message }); }
+    finally { setToggling(null); }
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("video/")) { toast({ variant: "destructive", title: "Solo videos" }); return; }
+    if (file.size > 100 * 1024 * 1024) { toast({ variant: "destructive", title: "Máx 100MB" }); return; }
+    try { setIsUploading(true); setUploadName(file.name); await uploadVideo(file); toast({ title: "¡Video subido!" }); }
+    catch (e: any) { toast({ variant: "destructive", title: "Error", description: e.message }); }
+    finally { setIsUploading(false); setUploadName(""); if (fileRef.current) fileRef.current.value = ""; }
+  };
+
+  const pending = tasks.filter(t => !t.done);
+  const done = tasks.filter(t => t.done);
+
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen lg:grid lg:grid-cols-[auto_1fr]">
+        <Sidebar className="hidden border-e bg-card lg:block" collapsible="icon"><SidebarNav /></Sidebar>
+        <div className="flex flex-col">
+          <Header />
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-24 max-w-6xl mx-auto w-full">
+            {/* Tab Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <h1 className="text-3xl font-extrabold tracking-tight">Centro de Entrenamiento</h1>
+                <p className="text-muted-foreground text-sm mt-1">Gestiona tus prácticas y evidencias en un solo lugar.</p>
+              </div>
+              <div className="flex gap-2 bg-muted/30 p-1 rounded-2xl">
+                <button onClick={() => setTab("tasks")} className={cn("px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2", tab === "tasks" ? "bg-primary text-black shadow-lg" : "text-muted-foreground hover:text-foreground")}>
+                  <ClipboardList className="h-4 w-4" /> Prácticas
+                </button>
+                <button onClick={() => setTab("videos")} className={cn("px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2", tab === "videos" ? "bg-primary text-black shadow-lg" : "text-muted-foreground hover:text-foreground")}>
+                  <Film className="h-4 w-4" /> Videos
+                </button>
+              </div>
+            </div>
+
+            {/* TAB: PRÁCTICAS */}
+            {tab === "tasks" && (
+              <section className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-muted-foreground font-medium">{pending.length} pendientes · {done.length} completadas</p>
+                  <AddTaskDialog onTaskAdded={() => {}} />
+                </div>
+
+                {isTasksLoading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {[1,2,3].map(i => <div key={i} className="h-20 rounded-2xl bg-muted/40 animate-pulse" />)}
+                  </div>
+                ) : tasks.length === 0 ? (
+                  <div className="py-20 text-center border-2 border-dashed rounded-3xl bg-muted/5 border-primary/20">
+                    <Sparkles className="mx-auto h-10 w-10 text-primary/30 mb-3" />
+                    <p className="font-bold text-muted-foreground">Aún no tienes tareas. ¡Crea tu primera práctica!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {pending.length > 0 && (
+                      <div className="space-y-3">
+                        <Label className="text-[10px] uppercase tracking-widest font-black text-primary/60">Pendientes</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          <AnimatePresence mode="popLayout">
+                            {pending.map(t => (
+                              <motion.div key={t.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+                                onClick={() => handleToggle(t.id)}
+                                className="group flex items-center p-4 rounded-2xl border border-primary/10 bg-card hover:border-primary/40 hover:shadow-md active:scale-[0.98] cursor-pointer select-none transition-all">
+                                <div className="h-10 w-10 rounded-full flex items-center justify-center mr-4 shrink-0 bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                                  {toggling === t.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <ListPlus className="h-5 w-5" />}
+                                </div>
+                                <div className="flex-1 overflow-hidden">
+                                  <p className="text-sm font-bold truncate">{t.label}</p>
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mt-0.5">Pendiente</p>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </AnimatePresence>
+                        </div>
+                      </div>
+                    )}
+                    {done.length > 0 && (
+                      <div className="space-y-3">
+                        <Label className="text-[10px] uppercase tracking-widest font-black text-muted-foreground/50">Completadas</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          <AnimatePresence mode="popLayout">
+                            {done.map(t => (
+                              <motion.div key={t.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+                                onClick={() => handleToggle(t.id)}
+                                className="group flex items-center p-4 rounded-2xl border border-primary/5 bg-muted/30 opacity-60 cursor-pointer select-none transition-all">
+                                <div className="h-10 w-10 rounded-full flex items-center justify-center mr-4 shrink-0 bg-green-500/20 text-green-500">
+                                  {toggling === t.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
+                                </div>
+                                <div className="flex-1 overflow-hidden">
+                                  <p className="text-sm font-bold truncate line-through text-muted-foreground">{t.label}</p>
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mt-0.5">✓ Completado</p>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </AnimatePresence>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* TAB: VIDEOS */}
+            {tab === "videos" && (
+              <section className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-muted-foreground font-medium">{uploads?.length || 0} evidencias enviadas</p>
+                  <Button onClick={() => fileRef.current?.click()} variant="outline" className="rounded-full border-primary/20 hover:bg-primary/5 gap-2" disabled={isUploading}>
+                    {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Subir Video
+                  </Button>
+                  <input type="file" ref={fileRef} className="hidden" accept="video/*" onChange={handleUpload} />
+                </div>
+
+                {isUploading && (
+                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="p-6 rounded-3xl border-2 border-primary/20 bg-primary/5 text-center space-y-3">
+                    <Loader2 className="h-8 w-8 text-primary animate-spin mx-auto" />
+                    <p className="font-bold text-sm">Subiendo {uploadName}...</p>
+                  </motion.div>
+                )}
+
+                {uploads && uploads.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {uploads.map(u => {
+                      const sc = getStatusConfig(u.status);
+                      return (
+                        <Dialog key={u.id}>
+                          <DialogTrigger asChild>
+                            <motion.div layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                              className="group p-5 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl cursor-pointer hover:border-primary/40 transition-all">
+                              <div className="flex justify-between items-start mb-3">
+                                <div>
+                                  <p className="text-[10px] font-bold uppercase text-muted-foreground flex items-center gap-1">
+                                    <Calendar className="h-3 w-3 text-primary" /> {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "Hoy"}
+                                  </p>
+                                  <h4 className="text-sm font-black text-white group-hover:text-primary transition-colors mt-0.5 truncate max-w-[200px]">{u.name}</h4>
+                                </div>
+                                <Badge variant="outline" className={cn("text-[9px] font-black uppercase border-none ring-1 ring-white/10", sc.color)}>{sc.icon}{sc.label}</Badge>
+                              </div>
+                              <div className="grid grid-cols-3 gap-2 mt-4">
+                                {[{ l: "Foco", v: u.feedback_detail?.foco || 0 }, { l: "Timing", v: u.feedback_detail?.timing || 0 }, { l: "Técnica", v: u.feedback_detail?.tecnica || 0 }].map(m => (
+                                  <div key={m.l} className="space-y-1">
+                                    <div className="flex justify-between text-[8px] font-black uppercase text-muted-foreground"><span>{m.l}</span><span className="text-primary">{m.v}%</span></div>
+                                    <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-primary" style={{ width: `${m.v}%` }} /></div>
+                                  </div>
+                                ))}
+                              </div>
+                            </motion.div>
+                          </DialogTrigger>
+                          <DialogContent className="w-[98vw] sm:max-w-3xl p-0 overflow-hidden bg-black border-white/10 rounded-[2rem] max-h-[90vh] flex flex-col">
+                            <div className="flex flex-col md:grid md:grid-cols-2 h-full overflow-hidden">
+                              <div className="h-52 md:h-auto flex items-center justify-center bg-black border-b border-white/5 md:border-none">
+                                <video src={u.url} controls playsInline className="max-h-full max-w-full" autoPlay />
+                              </div>
+                              <div className="flex flex-col overflow-hidden bg-card">
+                                <DialogHeader className="p-5 border-b bg-muted/10 shrink-0">
+                                  <Badge variant="outline" className={cn("w-fit text-[9px] font-black uppercase border-none mb-2", sc.color)}>{sc.icon}{sc.label}</Badge>
+                                  <DialogTitle className="text-base font-extrabold">{u.name}</DialogTitle>
+                                  <DialogDescription className="text-[10px]">{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : ""}</DialogDescription>
+                                </DialogHeader>
+                                <div className="p-5 overflow-y-auto flex-1 space-y-4">
+                                  <h4 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2"><MessageCircle className="h-3.5 w-3.5" /> Evaluación</h4>
+                                  {u.feedback_detail ? (
+                                    <div className="space-y-4">
+                                      <div className="flex items-center gap-3 p-3 bg-primary/5 rounded-xl">
+                                        <Avatar className="h-8 w-8"><AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${u.feedback_detail.evaluatorName || "trainer"}`} /><AvatarFallback>RE</AvatarFallback></Avatar>
+                                        <div><p className="text-xs font-bold">{u.feedback_detail.evaluatorName || "Especialista"}</p><p className="text-[9px] font-black uppercase text-primary/70">{u.feedback_detail.evaluatorRole || "Tutor"}</p></div>
+                                      </div>
+                                      {u.feedback_detail.comments && <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-sm italic font-bold relative"><Quote className="h-5 w-5 text-primary/20 absolute -top-2 -left-1" />"{u.feedback_detail.comments}"</div>}
+                                      <div className="grid grid-cols-3 gap-2">
+                                        {[{ l: "FOCO", v: u.feedback_detail.foco, i: <Compass className="h-3 w-3" /> }, { l: "TIMING", v: u.feedback_detail.timing, i: <Loader2 className="h-3 w-3" /> }, { l: "TÉCNICA", v: u.feedback_detail.tecnica, i: <Medal className="h-3 w-3" /> }].map(m => (
+                                          <div key={m.l} className="p-3 bg-white/[0.02] rounded-2xl border border-white/5 text-center"><div className="flex justify-center mb-1 text-primary">{m.i}</div><p className="text-lg font-black text-primary">{m.v}%</p><p className="text-[8px] font-black uppercase text-muted-foreground">{m.l}</p></div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ) : <div className="text-center py-8 opacity-40"><Info className="h-8 w-8 mx-auto mb-2" /><p className="text-xs font-black uppercase">Sin revisión aún</p></div>}
+                                </div>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-20 border-2 border-dashed rounded-[3rem] bg-muted/5 border-primary/20">
+                    <Video className="h-10 w-10 text-primary mx-auto mb-4" />
+                    <h3 className="font-black text-xl mb-2">Aún no hay evidencias</h3>
+                    <Button className="mt-4 rounded-full px-10" onClick={() => fileRef.current?.click()}><Upload className="mr-2 h-4 w-4" /> Seleccionar Video</Button>
+                  </div>
+                )}
+              </section>
+            )}
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
 }

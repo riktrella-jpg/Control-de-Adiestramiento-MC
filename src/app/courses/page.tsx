@@ -4,105 +4,106 @@ import { useState, useMemo } from 'react';
 import { Header } from "@/components/dashboard/header";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { Sidebar, SidebarProvider } from "@/components/ui/sidebar";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
 import { useAppState } from '@/context/app-state-provider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { Lock, Clock, ClipboardList, WandSparkles, GraduationCap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Lock, Clock, ListPlus, WandSparkles, GraduationCap, Loader2, CheckCircle2, Sparkles } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import confetti from 'canvas-confetti';
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 
 export default function CoursesPage() {
-    const { modules, toggleWeekCompletion, progress, tasks, userProfile, uploads } = useAppState();
+    const { modules, toggleWeekCompletion, progress, tasks, addTask, userProfile, uploads } = useAppState();
     const { toast } = useToast();
-    const [lockState, setLockState] = useState<Record<string, { isLocked: boolean; message: string }>>({})
+    const [lockState, setLockState] = useState<Record<string, { isLocked: boolean; message: string }>>({});
+    const [taskDialog, setTaskDialog] = useState<{ open: boolean; moduleId: string; weekId: string; week: any; module: any } | null>(null);
+    const [taskInput, setTaskInput] = useState('');
+    const [isSavingTask, setIsSavingTask] = useState(false);
 
-    // Precompute lock state for all weeks using useEffect
     useMemo(() => {
       const isAdmin = userProfile?.role === 'admin';
       const state: Record<string, { isLocked: boolean; message: string }> = {};
-      
       modules.forEach(module => {
         const completedTasks = tasks.filter((t: any) => t.done).length;
         const requiredVideosCount = module.moduleNumber;
         const hasEnoughVideos = uploads.length >= requiredVideosCount;
-        
-        module.weeks.forEach((week, i) => {
-          if (isAdmin) {
-             state[week.id] = { isLocked: false, message: '' };
-             return;
-          }
-
+        module.weeks.forEach((week) => {
+          if (isAdmin) { state[week.id] = { isLocked: false, message: '' }; return; }
           const baseTasks = (module.moduleNumber - 1) * 3;
           let requiredTasks = baseTasks;
           if (week.week === 2) requiredTasks = baseTasks + 1;
           if (week.week === 3) requiredTasks = baseTasks + 2;
           if (week.week === 4) requiredTasks = baseTasks + 3;
-
           const hasEnoughTasks = completedTasks >= requiredTasks;
           const needsVideo = week.week === 4;
-
           let previousWeekCompleted = true;
           if (week.week > 1) {
             const prevWeek = module.weeks.find(w => w.week === week.week - 1);
             previousWeekCompleted = prevWeek ? prevWeek.completed : true;
           }
-
           let isLocked = false;
-          let messages = [];
-
-          if (!previousWeekCompleted) {
-             isLocked = true;
-             messages.push(`Completa la semana ${week.week - 1}.`);
-          } else if (!hasEnoughTasks) {
-             isLocked = true;
-             messages.push(`Requiere ${requiredTasks} tareas completadas en total (tienes ${completedTasks}).`);
-          } else if (needsVideo && !hasEnoughVideos) {
-             isLocked = true;
-             messages.push(`Sube tu video de evidencia para este nivel.`);
-          }
-
-          if (week.completed) {
-             isLocked = false;
-             messages = [];
-          }
-          
-          state[week.id] = {
-            isLocked: isLocked,
-            message: messages.join(' ')
-          };
+          let messages: string[] = [];
+          if (!previousWeekCompleted) { isLocked = true; messages.push(`Completa la semana ${week.week - 1}.`); }
+          else if (!hasEnoughTasks) { isLocked = true; messages.push(`Requiere ${requiredTasks} tareas completadas (tienes ${completedTasks}).`); }
+          else if (needsVideo && !hasEnoughVideos) { isLocked = true; messages.push(`Sube tu video de evidencia.`); }
+          if (week.completed) { isLocked = false; messages = []; }
+          state[week.id] = { isLocked, message: messages.join(' ') };
         });
       });
       setLockState(state);
     }, [modules, tasks, uploads, userProfile]);
 
+    // Cuando el usuario quiere completar una semana, primero pedimos registrar tarea
+    const handleWeekClick = (moduleId: string, weekId: string, week: any, module: any) => {
+      if (week.completed) {
+        // Si ya está completa, permitir toggle directo (desmarcar)
+        handleToggleWeekCompletion(moduleId, weekId, week, module);
+        return;
+      }
+      // Abrir diálogo pidiendo registrar tarea
+      const autoLabel = `[M${module.id.replace('m', '')}-S${week.week}] ${week.objective}`;
+      setTaskInput(autoLabel);
+      setTaskDialog({ open: true, moduleId, weekId, week, module });
+    };
+
+    const handleConfirmWeekWithTask = async () => {
+      if (!taskDialog) return;
+      const label = taskInput.trim();
+      if (!label) { toast({ variant: 'destructive', title: 'Escribe una tarea' }); return; }
+      setIsSavingTask(true);
+      try {
+        // 1. Registrar tarea
+        const exists = tasks.some((t: any) => t.label === label);
+        if (!exists) await addTask(label);
+        // 2. Completar semana
+        await handleToggleWeekCompletion(taskDialog.moduleId, taskDialog.weekId, taskDialog.week, taskDialog.module);
+        setTaskDialog(null);
+        setTaskInput('');
+        toast({ title: '¡Semana completada!', description: 'Tarea registrada y progreso actualizado.', className: 'bg-green-600 text-white border-none font-bold' });
+      } catch (e: any) {
+        toast({ variant: 'destructive', title: 'Error', description: e.message });
+      } finally {
+        setIsSavingTask(false);
+      }
+    };
+
     const handleToggleWeekCompletion = async (moduleId: string, weekId: string, week: any, module: any) => {
         const isLastWeek = week.id === module.weeks[module.weeks.length - 1].id;
         try {
             const response = await toggleWeekCompletion(moduleId, weekId);
-            
             if (response?.isLocked) return;
-            
             if (isLastWeek && !week.completed) {
-                confetti({
-                    particleCount: 150,
-                    spread: 70,
-                    origin: { y: 0.6 },
-                    colors: ['#FFD700', '#FFA500', '#FF8C00', '#ffffff']
-                });
+                confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#FFD700', '#FFA500', '#FF8C00', '#ffffff'] });
             }
         } catch (error: any) {
-            toast({
-                variant: "destructive",
-                title: "Error al actualizar curso",
-                description: error.message || "Ocurrió un error al guardar tu progreso."
-            });
+            toast({ variant: "destructive", title: "Error al actualizar curso", description: error.message || "Ocurrió un error." });
         }
     };
 
@@ -110,25 +111,12 @@ export default function CoursesPage() {
         e.stopPropagation();
         const taskLabel = `[M${module.id.replace('m', '')}-S${week.week}] ${week.objective}`;
         const exists = tasks.some((t: any) => t.label === taskLabel);
-        
-        if (exists) {
-            toast({ 
-                title: "Práctica ya asignada", 
-                description: "Esta práctica ya está en tus Tareas Pendientes.",
-                className: "bg-blue-600 text-white border-none font-bold"
-            });
-            return;
-        }
-
+        if (exists) { toast({ title: "Ya asignada", className: "bg-blue-600 text-white border-none font-bold" }); return; }
         try {
             await addTask(taskLabel);
-            toast({ 
-                title: "¡Práctica Asignada!", 
-                description: "Ve a 'Tareas MANADA' para realizarla y aprobar tu semana.",
-                className: "bg-green-600 text-white border-none font-bold"
-            });
+            toast({ title: "¡Práctica Asignada!", description: "Ve a Tareas para realizarla.", className: "bg-green-600 text-white border-none font-bold" });
         } catch (error: any) {
-            toast({ variant: "destructive", title: "Error", description: "No se pudo asignar a tareas." });
+            toast({ variant: "destructive", title: "Error", description: error.message });
         }
     };
 
@@ -250,7 +238,7 @@ export default function CoursesPage() {
                                                                                             ? "bg-primary text-primary-foreground border-primary" 
                                                                                             : "bg-background hover:bg-primary/10 border-primary/20 text-primary"
                                                                                     )}
-                                                                                    onClick={() => handleToggleWeekCompletion(module.id, week.id, week, module)}
+                                                                                    onClick={() => handleWeekClick(module.id, week.id, week, module)}
                                                                                 >
                                                                                     {week.completed ? <GraduationCap className="h-4 w-4" /> : <div className="h-2 w-2 rounded-full bg-primary" />}
                                                                                 </div>
@@ -303,6 +291,39 @@ export default function CoursesPage() {
                                 )
                             })}
                         </Accordion>
+
+                        {/* Dialog para registrar tarea antes de completar semana */}
+                        <Dialog open={!!taskDialog?.open} onOpenChange={(o) => { if (!o) setTaskDialog(null); }}>
+                            <DialogContent className="w-[95vw] max-w-md rounded-[2rem] p-0 overflow-hidden border-primary/20 shadow-2xl">
+                                <div className="p-6 bg-primary/5 border-b border-primary/10">
+                                    <DialogTitle className="text-xl font-black flex items-center gap-3">
+                                        <Sparkles className="h-6 w-6 text-primary" /> Registrar Tarea de Semana
+                                    </DialogTitle>
+                                    <DialogDescription className="text-sm mt-1 text-muted-foreground">
+                                        Para completar esta semana, primero registra la práctica correspondiente.
+                                    </DialogDescription>
+                                </div>
+                                <div className="p-6 space-y-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] uppercase tracking-widest font-black text-primary/70">Tarea a registrar</Label>
+                                        <Input
+                                            value={taskInput}
+                                            onChange={e => setTaskInput(e.target.value)}
+                                            placeholder="Describe la práctica..."
+                                            className="rounded-2xl py-6 text-base font-medium"
+                                            disabled={isSavingTask}
+                                        />
+                                    </div>
+                                    <Button
+                                        onClick={handleConfirmWeekWithTask}
+                                        disabled={!taskInput.trim() || isSavingTask}
+                                        className="w-full rounded-2xl py-6 text-base font-black active:scale-95"
+                                    >
+                                        {isSavingTask ? <><Loader2 className="h-5 w-5 animate-spin mr-2" /> Guardando...</> : <><CheckCircle2 className="h-5 w-5 mr-2" /> Registrar y Completar Semana</>}
+                                    </Button>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
                     </main>
                 </div>
             </div>

@@ -106,6 +106,32 @@ export default function CoursesPage() {
         }
     };
 
+    const handleAssignTask = async (e: React.MouseEvent, module: any, week: any) => {
+        e.stopPropagation();
+        const taskLabel = `[M${module.id.replace('m', '')}-S${week.week}] ${week.objective}`;
+        const exists = tasks.some((t: any) => t.label === taskLabel);
+        
+        if (exists) {
+            toast({ 
+                title: "Práctica ya asignada", 
+                description: "Esta práctica ya está en tus Tareas Pendientes.",
+                className: "bg-blue-600 text-white border-none font-bold"
+            });
+            return;
+        }
+
+        try {
+            await addTask(taskLabel);
+            toast({ 
+                title: "¡Práctica Asignada!", 
+                description: "Ve a 'Tareas MANADA' para realizarla y aprobar tu semana.",
+                className: "bg-green-600 text-white border-none font-bold"
+            });
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Error", description: "No se pudo asignar a tareas." });
+        }
+    };
+
     return (
         <SidebarProvider>
             <div className="min-h-screen lg:grid lg:grid-cols-[auto_1fr]">
@@ -242,11 +268,22 @@ export default function CoursesPage() {
                                                                             <p className="text-sm font-medium text-muted-foreground leading-relaxed">{week.exercises}</p>
                                                                         </div>
                                                                         
-                                                                        <div className="flex items-center gap-4 pt-2 border-t border-primary/5">
+                                                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-primary/5">
                                                                             <div className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                                                                                 <Clock className="h-3.5 w-3.5 text-primary/60" />
                                                                                 {week.time}
                                                                             </div>
+                                                                            
+                                                                            {!week.completed && !isLocked && (
+                                                                                <Button 
+                                                                                    size="sm"
+                                                                                    onClick={(e) => handleAssignTask(e, module, week)}
+                                                                                    className="rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border-none text-xs font-bold w-full sm:w-auto"
+                                                                                >
+                                                                                    <ListPlus className="mr-2 h-3.5 w-3.5" />
+                                                                                    Añadir a Tareas MANADA
+                                                                                </Button>
+                                                                            )}
                                                                         </div>
                                                                     </CardContent>
                                                                     

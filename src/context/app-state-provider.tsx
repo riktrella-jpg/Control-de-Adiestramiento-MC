@@ -275,11 +275,21 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const completedWeeks = useMemo(() => modules.reduce((acc, m) => acc + m.weeks.filter(w => w.completed).length, 0), [modules]);
   const progress = useMemo(() => totalWeeks === 0 ? 0 : Math.round((completedWeeks / totalWeeks) * 100), [completedWeeks, totalWeeks]);
 
-  const toggleWeekCompletion = useCallback(async (moduleId: string, weekId: string, dryRun = false) => {
+  const toggleWeekCompletion = useCallback(async (moduleId: string, weekId: string, dryRun = false, forceComplete?: boolean) => {
     if (!user || !selectedPet) return { isLocked: true, message: "No pet selected" };
     const current = dbModuleProgress.find(p => p.moduleId === moduleId);
     const completedIds = current?.completedWeekIds || [];
-    const newItems = completedIds.includes(weekId) ? completedIds.filter(id => id !== weekId) : [...completedIds, weekId];
+    
+    let newItems;
+    if (forceComplete === true) {
+        if (completedIds.includes(weekId)) return { isLocked: false, message: "" };
+        newItems = [...completedIds, weekId];
+    } else if (forceComplete === false) {
+        if (!completedIds.includes(weekId)) return { isLocked: false, message: "" };
+        newItems = completedIds.filter(id => id !== weekId);
+    } else {
+        newItems = completedIds.includes(weekId) ? completedIds.filter(id => id !== weekId) : [...completedIds, weekId];
+    }
     
     if (!dryRun) {
         try {
@@ -324,6 +334,17 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
       try {
           const { error } = await supabase.from('tasks').update({ done: !task.done }).eq('id', taskId);
           if (error) throw error;
+          
+          // FASE 4: Auto-completar semana del curso si la tarea viene de Mis Cursos
+          if (!task.done && task.label.startsWith('[M')) {
+              const match = task.label.match(/\[M(\d+)-S(\d+)\]/);
+              if (match) {
+                  const mId = `m${match[1]}`;
+                  const wId = `w${match[1]}_${match[2]}`;
+                  await toggleWeekCompletion(mId, wId, false, true); // forceComplete = true
+              }
+          }
+
           await refetchTasks();
       } catch (error: any) {
           await logError("toggleTaskCompletion", error);

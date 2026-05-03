@@ -1,15 +1,25 @@
 "use client";
 
+import React, { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { Sidebar, SidebarProvider } from "@/components/ui/sidebar";
-import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { Header } from "@/components/dashboard/header";
 import { BackgroundEffects } from "@/components/ui/background-effects";
+
+const SidebarNav = dynamic(() => import("@/components/dashboard/sidebar-nav").then(mod => mod.SidebarNav), { ssr: false });
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
   return (
     <SidebarProvider>
       <div className="min-h-screen lg:grid lg:grid-cols-[auto_1fr] w-full relative bg-black">

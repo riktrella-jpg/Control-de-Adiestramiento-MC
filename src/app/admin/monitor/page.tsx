@@ -5,7 +5,7 @@ import { Upload } from "@/context/app-state-provider";
 import { 
   Loader2, Bell, Zap 
 } from "lucide-react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

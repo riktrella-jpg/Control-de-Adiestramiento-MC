@@ -1,11 +1,12 @@
 "use client";
 
+import React from "react";
 import dynamic from "next/dynamic";
 import { useAppState } from "@/context/app-state-provider";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { TasksCard } from "@/components/dashboard/tasks-card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 
 // Dynamic imports for heavy components to improve initial load
 const PlannerCard = dynamic(() => import("@/components/dashboard/planner-card").then(mod => mod.PlannerCard), {
@@ -52,6 +53,13 @@ const item = {
 
 export default function DashboardPage() {
   const { selectedPet } = useAppState();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8 max-w-[1600px] mx-auto w-full transition-all duration-500">

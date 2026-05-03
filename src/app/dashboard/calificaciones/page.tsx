@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, AlertCircle, Star, Video, ArrowRight, Target, Zap, Clock } from "lucide-react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { useAppState } from "@/context/app-state-provider";
 
 // --- MODELO DE DATOS (Ejemplo para Arquitectura) ---

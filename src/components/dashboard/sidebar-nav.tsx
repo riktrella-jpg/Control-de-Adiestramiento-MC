@@ -147,12 +147,27 @@ export function SidebarNav() {
     }
   };
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
   return (
     <>
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Image src={Logo} alt="MANADA" width={32} height={32} className="rounded-md" />
-          <span className="text-sm font-black tracking-tighter text-foreground uppercase">MC26 STUDIO</span>
+        <div className="flex flex-col items-center gap-2.5 mb-5 pt-1">
+          <div className="relative flex justify-center items-center rounded-xl overflow-hidden shadow-lg" style={{ width: 68, height: 68 }}>
+            <Image
+              src={Logo}
+              alt="MC APP"
+              width={68}
+              height={68}
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <span className="text-[11px] font-black tracking-[0.2em] text-white/70 uppercase">MC APP</span>
         </div>
 
         <DropdownMenu>
@@ -197,43 +212,31 @@ export function SidebarNav() {
       </SidebarHeader>
 
       <SidebarContent className="flex-1 overflow-auto p-2">
-        <motion.div 
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setAddPetOpen(true)}
-          className="mx-2 mb-6 p-4 rounded-[2rem] bg-gradient-to-br from-primary/20 via-primary/5 to-transparent border border-primary/30 cursor-pointer group relative overflow-hidden shadow-2xl shadow-primary/5"
-        >
-           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-30 transition-opacity">
-              <PawPrint className="h-12 w-12 text-primary" />
-           </div>
-           <div className="flex items-center gap-4 relative z-10">
-              <div className="h-14 w-14 rounded-2xl bg-black/60 flex items-center justify-center p-1 border border-primary/40 group-hover:border-primary transition-all shadow-inner">
-                <div className="relative">
-                   <PartyPopper className="h-8 w-8 text-primary animate-bounce" />
-                   <Plus className="h-4 w-4 text-white absolute -top-1 -right-1 bg-primary rounded-full p-0.5 ring-2 ring-black" />
-                </div>
-              </div>
-              <div>
-                <p className="text-[10px] font-black uppercase text-primary tracking-[0.2em] mb-0.5">Portal Manada</p>
-                <p className="text-sm font-black text-white uppercase tracking-tighter">Añadir Mascota</p>
-              </div>
-           </div>
-        </motion.div>
         <SidebarMenu className="gap-1">
           {allLinks.map((link) => (
             <SidebarMenuItem key={link.href}>
               <SidebarMenuButton
-                asChild
+                asChild={link.href !== "/settings"}
                 isActive={pathname === link.href && !link.target}
                 tooltip={link.label}
+                onClick={link.href === "/settings" ? () => setAddPetOpen(true) : undefined}
                 className={`rounded-xl h-11 transition-all border border-transparent ${pathname === link.href ? 'bg-primary/20 border-primary/20 shadow-inner' : 'hover:bg-white/[0.03]'}`}
               >
-                <Link href={link.href} target={link.target} className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg transition-colors ${pathname === link.href ? 'bg-primary text-black' : 'bg-white/5 text-muted-foreground group-hover:text-primary'}`}>
-                    <link.icon className="h-4 w-4" />
+                {link.href === "/settings" ? (
+                  <div className="flex items-center gap-3 w-full cursor-pointer">
+                    <div className="p-2 rounded-lg bg-white/5 text-muted-foreground group-hover:text-primary transition-colors">
+                      <link.icon className="h-4 w-4" />
+                    </div>
+                    <span className="text-sm font-bold text-muted-foreground">{link.label}</span>
                   </div>
-                  <span className={`text-sm font-bold ${pathname === link.href ? 'text-white' : 'text-muted-foreground'}`}>{link.label}</span>
-                </Link>
+                ) : (
+                  <Link href={link.href} target={link.target} className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg transition-colors ${pathname === link.href ? 'bg-primary text-black' : 'bg-white/5 text-muted-foreground group-hover:text-primary'}`}>
+                      <link.icon className="h-4 w-4" />
+                    </div>
+                    <span className={`text-sm font-bold ${pathname === link.href ? 'text-white' : 'text-muted-foreground'}`}>{link.label}</span>
+                  </Link>
+                )}
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
@@ -301,11 +304,16 @@ export function SidebarNav() {
       </Dialog>
 
       <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
-        <DialogContent className="bg-black/95 backdrop-blur-2xl border-white/10 text-white rounded-3xl sm:max-w-[400px]">
+        <DialogContent className="bg-black/95 backdrop-blur-2xl border-white/10 text-white rounded-3xl sm:max-w-[440px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Ajustes del Sistema</DialogTitle>
+            <DialogTitle className="text-2xl font-black uppercase tracking-tight flex items-center gap-3">
+              <Settings2 className="h-6 w-6 text-primary" />
+              Ajustes del Sistema
+            </DialogTitle>
           </DialogHeader>
-          <div className="py-6 space-y-6">
+          <div className="py-4 space-y-6">
+
+            {/* TEMA */}
             <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10">
               <div className="space-y-0.5">
                 <Label className="text-sm font-bold">Modo Oscuro</Label>
@@ -316,7 +324,8 @@ export function SidebarNav() {
                 onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
               />
             </div>
-            
+
+            {/* FOTO DEL BINOMIO */}
             <div className="space-y-3">
               <Label className="text-[10px] font-black uppercase tracking-widest text-primary/70 ml-1">Identidad Visual</Label>
               <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
@@ -340,6 +349,48 @@ export function SidebarNav() {
                  </div>
               </div>
             </div>
+
+            {/* PORTAL MANADA */}
+            <div className="space-y-3">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-primary/70 ml-1">Portal Manada</Label>
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+                <p className="text-xs text-muted-foreground font-medium">Registra un nuevo binomio en tu pack de entrenamiento.</p>
+                <div className="flex gap-3">
+                  <Input
+                    placeholder="Nombre de la mascota, ej: Haku"
+                    value={newPetName}
+                    onChange={(e) => setNewPetName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleAddPet(); }}
+                    className="bg-white/5 border-white/10 h-11 rounded-xl font-bold text-sm"
+                  />
+                  <Button
+                    onClick={handleAddPet}
+                    disabled={isUpdating || !newPetName.trim()}
+                    className="h-11 px-4 rounded-xl bg-primary text-black font-black uppercase tracking-widest hover:bg-primary/90 shrink-0 shadow-lg shadow-primary/20"
+                  >
+                    {isUpdating ? <Activity className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  </Button>
+                </div>
+                {pets.length > 0 && (
+                  <div className="space-y-2 pt-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Pack Registrado ({pets.length})</p>
+                    <div className="space-y-1.5 max-h-[120px] overflow-y-auto">
+                      {pets.map(pet => (
+                        <div key={pet.id} className={`flex items-center gap-2.5 p-2 rounded-xl transition-all ${selectedPet?.id === pet.id ? 'bg-primary/10 border border-primary/20' : 'bg-white/[0.03]'}`}>
+                          <Avatar className="h-7 w-7 border border-white/10">
+                            <AvatarImage src={pet.photo_url} className="object-cover" />
+                            <AvatarFallback className="text-[10px] font-bold">{pet.name[0].toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <span className="text-xs font-bold flex-1 truncate">{pet.name}</span>
+                          {selectedPet?.id === pet.id && <Star className="h-3 w-3 fill-primary text-primary shrink-0" />}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
           </div>
           <DialogFooter>
             <Button variant="outline" className="w-full h-12 rounded-xl border-white/10 font-black uppercase tracking-widest" onClick={() => setProfileOpen(false)}>Cerrar</Button>

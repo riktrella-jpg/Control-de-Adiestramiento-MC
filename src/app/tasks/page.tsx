@@ -7,7 +7,7 @@ import { useAppState } from "@/context/app-state-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, ListPlus, Video, Upload, Loader2, CheckCircle2, AlertCircle, Info, Sparkles, Calendar, MessageCircle, Compass, Medal, Quote, ChevronRight, Trophy, ClipboardList, Film } from "lucide-react";
+import { PlusCircle, ListPlus, Video, Upload, Loader2, CheckCircle2, AlertCircle, Info, Sparkles, Calendar, MessageCircle, Compass, Quote, ChevronRight, Trophy, ClipboardList, Film, Shield, Heart, Activity, Flame } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -217,9 +217,9 @@ export default function TasksPage() {
                                 <div className="h-10 w-10 rounded-full flex items-center justify-center mr-4 shrink-0 bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
                                   {toggling === t.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <ListPlus className="h-5 w-5" />}
                                 </div>
-                                <div className="flex-1 overflow-hidden">
-                                  <p className="text-sm font-bold truncate">{t.label}</p>
-                                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mt-0.5">Pendiente</p>
+                                <div className="flex-1 min-w-0 pr-2">
+                                  <p className="text-sm font-bold whitespace-normal break-words leading-tight">{t.label}</p>
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black mt-1">Pendiente</p>
                                 </div>
                               </motion.div>
                             ))}
@@ -239,9 +239,9 @@ export default function TasksPage() {
                                 <div className="h-10 w-10 rounded-full flex items-center justify-center mr-4 shrink-0 bg-green-500/20 text-green-500">
                                   {toggling === t.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
                                 </div>
-                                <div className="flex-1 overflow-hidden">
-                                  <p className="text-sm font-bold truncate line-through text-muted-foreground">{t.label}</p>
-                                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mt-0.5">✓ Completado</p>
+                                <div className="flex-1 min-w-0 pr-2">
+                                  <p className="text-sm font-bold whitespace-normal break-words leading-tight line-through text-muted-foreground">{t.label}</p>
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black mt-1">✓ Completado</p>
                                 </div>
                               </motion.div>
                             ))}
@@ -290,11 +290,16 @@ export default function TasksPage() {
                                 </div>
                                 <Badge variant="outline" className={cn("text-[9px] font-black uppercase border-none ring-1 ring-white/10", sc.color)}>{sc.icon}{sc.label}</Badge>
                               </div>
-                              <div className="grid grid-cols-3 gap-2 mt-4">
-                                {[{ l: "Foco", v: u.feedback_detail?.foco || 0 }, { l: "Timing", v: u.feedback_detail?.timing || 0 }, { l: "Técnica", v: u.feedback_detail?.tecnica || 0 }].map(m => (
+                              <div className="grid grid-cols-5 gap-1 mt-4">
+                                {[{ l: "Obed.", v: u.feedback_detail?.obediencia || 0 }, 
+                                  { l: "Vínc.", v: u.feedback_detail?.vinculo || 0 }, 
+                                  { l: "Foco", v: u.feedback_detail?.foco || 0 }, 
+                                  { l: "Cont.", v: u.feedback_detail?.control || 0 }, 
+                                  { l: "Calma", v: u.feedback_detail?.calma || 0 }].map(m => (
                                   <div key={m.l} className="space-y-1">
-                                    <div className="flex justify-between text-[8px] font-black uppercase text-muted-foreground"><span>{m.l}</span><span className="text-primary">{m.v}%</span></div>
+                                    <div className="flex justify-between text-[7px] font-black uppercase text-muted-foreground"><span>{m.l}</span></div>
                                     <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-primary" style={{ width: `${m.v}%` }} /></div>
+                                    <p className="text-[8px] font-black text-primary text-center">{m.v}%</p>
                                   </div>
                                 ))}
                               </div>
@@ -320,9 +325,19 @@ export default function TasksPage() {
                                         <div><p className="text-xs font-bold">{u.feedback_detail.evaluatorName || "Especialista"}</p><p className="text-[9px] font-black uppercase text-primary/70">{u.feedback_detail.evaluatorRole || "Tutor"}</p></div>
                                       </div>
                                       {u.feedback_detail.comments && <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-sm italic font-bold relative"><Quote className="h-5 w-5 text-primary/20 absolute -top-2 -left-1" />"{u.feedback_detail.comments}"</div>}
-                                      <div className="grid grid-cols-3 gap-2">
-                                        {[{ l: "FOCO", v: u.feedback_detail.foco, i: <Compass className="h-3 w-3" /> }, { l: "TIMING", v: u.feedback_detail.timing, i: <Loader2 className="h-3 w-3" /> }, { l: "TÉCNICA", v: u.feedback_detail.tecnica, i: <Medal className="h-3 w-3" /> }].map(m => (
-                                          <div key={m.l} className="p-3 bg-white/[0.02] rounded-2xl border border-white/5 text-center"><div className="flex justify-center mb-1 text-primary">{m.i}</div><p className="text-lg font-black text-primary">{m.v}%</p><p className="text-[8px] font-black uppercase text-muted-foreground">{m.l}</p></div>
+                                      <div className="grid grid-cols-5 gap-2">
+                                        {[
+                                          { l: "OBED", v: u.feedback_detail.obediencia, i: <Shield className="h-3 w-3" /> }, 
+                                          { l: "VÍNC", v: u.feedback_detail.vinculo, i: <Heart className="h-3 w-3" /> }, 
+                                          { l: "FOCO", v: u.feedback_detail.foco, i: <Compass className="h-3 w-3" /> }, 
+                                          { l: "CONT", v: u.feedback_detail.control, i: <Activity className="h-3 w-3" /> }, 
+                                          { l: "CALM", v: u.feedback_detail.calma, i: <Flame className="h-3 w-3" /> }
+                                        ].map(m => (
+                                          <div key={m.l} className="p-2 bg-white/[0.02] rounded-2xl border border-white/5 text-center flex flex-col items-center justify-center">
+                                            <div className="flex justify-center mb-1 text-primary">{m.i}</div>
+                                            <p className="text-sm font-black text-primary leading-none">{m.v}%</p>
+                                            <p className="text-[7px] font-black uppercase text-muted-foreground mt-1">{m.l}</p>
+                                          </div>
                                         ))}
                                       </div>
                                     </div>

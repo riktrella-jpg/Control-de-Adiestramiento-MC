@@ -1,9 +1,12 @@
 
 "use client";
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import dynamic from "next/dynamic";
 import { Header } from "@/components/dashboard/header";
-import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { Sidebar, SidebarProvider } from "@/components/ui/sidebar";
+
+const SidebarNav = dynamic(() => import("@/components/dashboard/sidebar-nav").then(mod => mod.SidebarNav), { ssr: false });
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Label } from '@/components/ui/label';
@@ -12,7 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Lock, Clock, ListPlus, WandSparkles, GraduationCap, Loader2, CheckCircle2, Sparkles } from 'lucide-react';
+import { Lock, Clock, ListPlus, WandSparkles, GraduationCap, Loader2, CheckCircle2, Sparkles, Video } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import confetti from 'canvas-confetti';
@@ -21,21 +24,26 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function CoursesPage() {
     const { modules, toggleWeekCompletion, progress, tasks, addTask, userProfile, uploads } = useAppState();
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const { toast } = useToast();
+    
+    // ... rest of state
+    if (!mounted) return null;
     const [lockState, setLockState] = useState<Record<string, { isLocked: boolean; message: string }>>({});
     const [taskDialog, setTaskDialog] = useState<{ open: boolean; moduleId: string; weekId: string; week: any; module: any } | null>(null);
     const [taskInput, setTaskInput] = useState('');
     const [isSavingTask, setIsSavingTask] = useState(false);
 
-    useMemo(() => {
-      const isAdmin = userProfile?.role === 'admin';
+    useEffect(() => {
       const state: Record<string, { isLocked: boolean; message: string }> = {};
       modules.forEach(module => {
         const completedTasks = tasks.filter((t: any) => t.done).length;
         const requiredVideosCount = module.moduleNumber;
-        const hasEnoughVideos = uploads.length >= requiredVideosCount;
         module.weeks.forEach((week) => {
-          if (isAdmin) { state[week.id] = { isLocked: false, message: '' }; return; }
           const baseTasks = (module.moduleNumber - 1) * 3;
           let requiredTasks = baseTasks;
           if (week.week === 2) requiredTasks = baseTasks + 1;
@@ -43,16 +51,21 @@ export default function CoursesPage() {
           if (week.week === 4) requiredTasks = baseTasks + 3;
           const hasEnoughTasks = completedTasks >= requiredTasks;
           const needsVideo = week.week === 4;
+
           let previousWeekCompleted = true;
           if (week.week > 1) {
             const prevWeek = module.weeks.find(w => w.week === week.week - 1);
             previousWeekCompleted = prevWeek ? prevWeek.completed : true;
           }
+
           let isLocked = false;
           let messages: string[] = [];
           if (!previousWeekCompleted) { isLocked = true; messages.push(`Completa la semana ${week.week - 1}.`); }
           else if (!hasEnoughTasks) { isLocked = true; messages.push(`Requiere ${requiredTasks} tareas completadas (tienes ${completedTasks}).`); }
-          else if (needsVideo && !hasEnoughVideos) { isLocked = true; messages.push(`Sube tu video de evidencia.`); }
+          else if (needsVideo && uploads.length < module.moduleNumber) { 
+            isLocked = true; 
+            messages.push(`Para la SEMANA 4 es obligatorio subir un video de evidencia (tienes ${uploads.length}/${module.moduleNumber}).`); 
+          }
           if (week.completed) { isLocked = false; messages = []; }
           state[week.id] = { isLocked, message: messages.join(' ') };
         });
@@ -68,7 +81,8 @@ export default function CoursesPage() {
         return;
       }
       // Abrir diálogo pidiendo registrar tarea
-      const autoLabel = `[M${module.id.replace('m', '')}-S${week.week}] ${week.objective}`;
+      // Formato estricto [M#-S#] para que el sincronizador de AppStateProvider lo reconozca
+      const autoLabel = `[M${module.moduleNumber}-S${week.week}] ${week.objective}`;
       setTaskInput(autoLabel);
       setTaskDialog({ open: true, moduleId, weekId, week, module });
     };
@@ -82,11 +96,13 @@ export default function CoursesPage() {
         // 1. Registrar tarea
         const exists = tasks.some((t: any) => t.label === label);
         if (!exists) await addTask(label);
-        // 2. Completar semana
-        await handleToggleWeekCompletion(taskDialog.moduleId, taskDialog.weekId, taskDialog.week, taskDialog.module);
+        
+        // NO completamos la semana automáticamente aquí. 
+        // El usuario debe ir a "Tareas" y completarla allí para que la semana se marque como completada.
+        
         setTaskDialog(null);
         setTaskInput('');
-        toast({ title: '¡Semana completada!', description: 'Tarea registrada y progreso actualizado.', className: 'bg-green-600 text-white border-none font-bold' });
+        toast({ title: '¡Tarea Asignada!', description: 'Completa la tarea en la sección de Tareas para desbloquear la siguiente semana.', className: 'bg-blue-600 text-white border-none font-bold' });
       } catch (e: any) {
         toast({ variant: 'destructive', title: 'Error', description: e.message });
       } finally {
@@ -109,7 +125,7 @@ export default function CoursesPage() {
 
     const handleAssignTask = async (e: React.MouseEvent, module: any, week: any) => {
         e.stopPropagation();
-        const taskLabel = `[M${module.id.replace('m', '')}-S${week.week}] ${week.objective}`;
+        const taskLabel = `[M${module.moduleNumber}-S${week.week}] ${week.objective}`;
         const exists = tasks.some((t: any) => t.label === taskLabel);
         if (exists) { toast({ title: "Ya asignada", className: "bg-blue-600 text-white border-none font-bold" }); return; }
         try {
@@ -265,11 +281,39 @@ export default function CoursesPage() {
                                                                             {!week.completed && !isLocked && (
                                                                                 <Button 
                                                                                     size="sm"
-                                                                                    onClick={(e) => handleAssignTask(e, module, week)}
-                                                                                    className="rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border-none text-xs font-bold w-full sm:w-auto"
+                                                                                    onClick={(e) => {
+                                                                                       e.stopPropagation();
+                                                                                       const taskLabel = `[M${module.moduleNumber}-S${week.week}] ${week.objective}`;
+                                                                                       const task = tasks.find((t: any) => t.label === taskLabel);
+                                                                                       if (task && !task.done) {
+                                                                                           window.location.href = '/tasks';
+                                                                                       } else if (task && task.done) {
+                                                                                           handleToggleWeekCompletion(module.id, week.id, week, module);
+                                                                                       } else {
+                                                                                           handleWeekClick(module.id, week.id, week, module);
+                                                                                       }
+                                                                                    }}
+                                                                                     className={cn(
+                                                                                        "rounded-xl border-none text-xs font-bold w-full sm:w-auto transition-all",
+                                                                                        tasks.some((t: any) => t.label === `[M${module.moduleNumber}-S${week.week}] ${week.objective}` && !t.done)
+                                                                                            ? "bg-orange-500/10 text-orange-500 hover:bg-orange-500/20"
+                                                                                            : tasks.some((t: any) => t.label === `[M${module.moduleNumber}-S${week.week}] ${week.objective}` && t.done)
+                                                                                                ? "bg-green-500/10 text-green-500 hover:bg-green-500/20"
+                                                                                                : "bg-primary/10 hover:bg-primary/20 text-primary"
+                                                                                     )}
                                                                                 >
-                                                                                    <ListPlus className="mr-2 h-3.5 w-3.5" />
-                                                                                    Añadir a Tareas MANADA
+                                                                                    {(() => {
+                                                                                       const taskLabel = `[M${module.moduleNumber}-S${week.week}] ${week.objective}`;
+                                                                                       const task = tasks.find((t: any) => t.label === taskLabel);
+                                                                                       if (task && !task.done) return <><Clock className="mr-2 h-3.5 w-3.5 animate-pulse" /> Tarea en curso...</>;
+                                                                                       if (task && task.done) return <><CheckCircle2 className="mr-2 h-3.5 w-3.5" /> Completar Semana</>;
+                                                                                       return (
+                                                                                           <>
+                                                                                               {week.week === 4 ? <Video className="mr-2 h-3.5 w-3.5" /> : <ListPlus className="mr-2 h-3.5 w-3.5" />}
+                                                                                               {week.week === 4 ? "Añadir Video a Tareas MANADA" : "Añadir a Tareas MANADA"}
+                                                                                           </>
+                                                                                       );
+                                                                                    })()}
                                                                                 </Button>
                                                                             )}
                                                                         </div>

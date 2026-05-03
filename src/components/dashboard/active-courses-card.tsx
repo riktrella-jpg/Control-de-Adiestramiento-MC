@@ -3,7 +3,7 @@ import { useAppState } from "@/context/app-state-provider";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { ChevronRight, Sparkles } from "lucide-react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 
 export function ActiveCoursesCard({ className }: { className?: string }) {
   const { modules } = useAppState();

@@ -11,7 +11,7 @@ import {
   BarChart3,
   Server
 } from "lucide-react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 
 export function AdminMonitor() {
   const [latency, setLatency] = useState(24);

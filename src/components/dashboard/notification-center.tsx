@@ -13,7 +13,7 @@ import { createClient } from "@/supabase/client";
 import { useUser } from "@/hooks/use-user";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
 interface Notification {

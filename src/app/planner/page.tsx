@@ -1,8 +1,12 @@
 "use client";
 
+import React, { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { Header } from "@/components/dashboard/header";
-import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { Sidebar, SidebarProvider } from "@/components/ui/sidebar";
+
+const SidebarNav = dynamic(() => import("@/components/dashboard/sidebar-nav").then(mod => mod.SidebarNav), { ssr: false });
+
 import {
   Card,
   CardContent,

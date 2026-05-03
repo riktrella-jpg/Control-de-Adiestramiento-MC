@@ -38,8 +38,10 @@ export default function AdminUserPage() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [feedbackText, setFeedbackText] = useState<{ [key: string]: string }>({});
   const [focoMap, setFocoMap] = useState<{ [key: string]: number }>({});
-  const [timingMap, setTimingMap] = useState<{ [key: string]: number }>({});
-  const [tecnicaMap, setTecnicaMap] = useState<{ [key: string]: number }>({});
+  const [obedienciaMap, setObedienciaMap] = useState<{ [key: string]: number }>({});
+  const [vinculoMap, setVinculoMap] = useState<{ [key: string]: number }>({});
+  const [controlMap, setControlMap] = useState<{ [key: string]: number }>({});
+  const [calmaMap, setCalmaMap] = useState<{ [key: string]: number }>({});
   const [nextStepsMap, setNextStepsMap] = useState<{ [key: string]: string[] }>({});
   const [isSaving, setIsSaving] = useState<{ [key: string]: boolean }>({});
   const [isDeleting, setIsDeleting] = useState<{ [key: string]: boolean }>({});
@@ -111,9 +113,14 @@ export default function AdminUserPage() {
     
     // Construct professional feedback object
     const feedbackDetail = {
-        foco: focoMap[uploadId] ?? 80,
-        timing: timingMap[uploadId] ?? 80,
-        tecnica: tecnicaMap[uploadId] ?? 80,
+        obediencia: obedienciaMap[uploadId] ?? upload.feedback_detail?.obediencia ?? 80,
+        vinculo: vinculoMap[uploadId] ?? upload.feedback_detail?.vinculo ?? 80,
+        foco: focoMap[uploadId] ?? upload.feedback_detail?.foco ?? 80,
+        control: controlMap[uploadId] ?? upload.feedback_detail?.control ?? 80,
+        calma: calmaMap[uploadId] ?? upload.feedback_detail?.calma ?? 80,
+        // Mantener campos antiguos por compatibilidad si es necesario
+        timing: 80,
+        tecnica: 80,
         comments: feedbackText[uploadId] || "",
         nextSteps: nextStepsMap[uploadId] || [],
         evaluatorName: "Ricardo",
@@ -406,36 +413,46 @@ export default function AdminUserPage() {
                               </Badge>
                             </div>
 
-                            {/* Professional Metrics Sliders */}
-                            <div className="grid grid-cols-3 gap-4 p-4 bg-white/5 rounded-xl border border-white/10">
-                              <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-primary/70">Foco {focoMap[upload.id] ?? upload.feedback_detail?.foco ?? 80}%</Label>
+                            {/* Professional Metrics Sliders - 5 Pillars */}
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
+                              <div className="space-y-1">
+                                <Label className="text-[9px] font-black uppercase tracking-tighter text-primary/70">Obediencia {obedienciaMap[upload.id] ?? upload.feedback_detail?.obediencia ?? 80}%</Label>
                                 <input 
-                                  type="range" 
-                                  className="w-full accent-primary h-1"
-                                  min="0" max="100" 
+                                  type="range" className="w-full accent-primary h-1" min="0" max="100" 
+                                  value={obedienciaMap[upload.id] ?? upload.feedback_detail?.obediencia ?? 80}
+                                  onChange={(e) => setObedienciaMap(prev => ({ ...prev, [upload.id]: parseInt(e.target.value) }))}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-[9px] font-black uppercase tracking-tighter text-primary/70">Vínculo {vinculoMap[upload.id] ?? upload.feedback_detail?.vinculo ?? 80}%</Label>
+                                <input 
+                                  type="range" className="w-full accent-primary h-1" min="0" max="100" 
+                                  value={vinculoMap[upload.id] ?? upload.feedback_detail?.vinculo ?? 80}
+                                  onChange={(e) => setVinculoMap(prev => ({ ...prev, [upload.id]: parseInt(e.target.value) }))}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-[9px] font-black uppercase tracking-tighter text-primary/70">Foco {focoMap[upload.id] ?? upload.feedback_detail?.foco ?? 80}%</Label>
+                                <input 
+                                  type="range" className="w-full accent-primary h-1" min="0" max="100" 
                                   value={focoMap[upload.id] ?? upload.feedback_detail?.foco ?? 80}
                                   onChange={(e) => setFocoMap(prev => ({ ...prev, [upload.id]: parseInt(e.target.value) }))}
                                 />
                               </div>
-                              <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-primary/70">Timing {timingMap[upload.id] ?? upload.feedback_detail?.timing ?? 80}%</Label>
+                              <div className="space-y-1">
+                                <Label className="text-[9px] font-black uppercase tracking-tighter text-primary/70">Control {controlMap[upload.id] ?? upload.feedback_detail?.control ?? 80}%</Label>
                                 <input 
-                                  type="range" 
-                                  className="w-full accent-primary h-1"
-                                  min="0" max="100" 
-                                  value={timingMap[upload.id] ?? upload.feedback_detail?.timing ?? 80}
-                                  onChange={(e) => setTimingMap(prev => ({ ...prev, [upload.id]: parseInt(e.target.value) }))}
+                                  type="range" className="w-full accent-primary h-1" min="0" max="100" 
+                                  value={controlMap[upload.id] ?? upload.feedback_detail?.control ?? 80}
+                                  onChange={(e) => setControlMap(prev => ({ ...prev, [upload.id]: parseInt(e.target.value) }))}
                                 />
                               </div>
-                              <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-primary/70">Técnica {tecnicaMap[upload.id] ?? upload.feedback_detail?.tecnica ?? 80}%</Label>
+                              <div className="space-y-1 col-span-2 md:col-span-1">
+                                <Label className="text-[9px] font-black uppercase tracking-tighter text-primary/70">Calma {calmaMap[upload.id] ?? upload.feedback_detail?.calma ?? 80}%</Label>
                                 <input 
-                                  type="range" 
-                                  className="w-full accent-primary h-1"
-                                  min="0" max="100" 
-                                  value={tecnicaMap[upload.id] ?? upload.feedback_detail?.tecnica ?? 80}
-                                  onChange={(e) => setTecnicaMap(prev => ({ ...prev, [upload.id]: parseInt(e.target.value) }))}
+                                  type="range" className="w-full accent-primary h-1" min="0" max="100" 
+                                  value={calmaMap[upload.id] ?? upload.feedback_detail?.calma ?? 80}
+                                  onChange={(e) => setCalmaMap(prev => ({ ...prev, [upload.id]: parseInt(e.target.value) }))}
                                 />
                               </div>
                             </div>
@@ -521,12 +538,12 @@ export default function AdminUserPage() {
 
                             <Button 
                               size="sm" 
-                              className="h-10 px-6 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 transition-all active:scale-95 group"
+                              className="h-10 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 transition-all active:scale-95 group shrink-0"
                               disabled={isSaving[upload.id]}
                               onClick={() => handleSaveFeedback(upload.id)}
                             >
-                              {isSaving[upload.id] ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2 group-hover:rotate-12 transition-transform" />}
-                              Guardar Feedback
+                              {isSaving[upload.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 group-hover:rotate-12 transition-transform" />}
+                              <span className="hidden sm:inline ml-2">Guardar Feedback</span>
                             </Button>
                           </div>
                         </div>

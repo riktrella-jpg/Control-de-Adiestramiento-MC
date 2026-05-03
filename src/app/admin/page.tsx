@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function AdminDashboard() {
   const { data: users, isLoading: isUsersLoading, refetch: refetchUsers } = useCollection<UserProfile>("users", [], { column: "createdAt", ascending: false });

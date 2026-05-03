@@ -50,8 +50,10 @@ export type GeneratePlanOutput = {
 const planSchema = z.object({
     mainProblem: z.string().min(1, "Debes seleccionar un problema."),
     context: z.string().min(1, "Debes seleccionar dónde ocurre."),
+    intensity: z.string().min(1, "Selecciona la intensidad."),
     dogInfo: z.string().min(1, "Debes describir a tu perro."),
-    details: z.string().min(1, "Por favor, da más detalles de la situación.")
+    details: z.string().min(1, "Por favor, da más detalles de la situación."),
+    comorbidities: z.array(z.string()).optional()
 });
 
 async function callGroq(input: GeneratePlanInput & { dogName?: string, ownerName?: string }): Promise<GeneratePlanOutput> {
@@ -82,9 +84,11 @@ async function callGroq(input: GeneratePlanInput & { dogName?: string, ownerName
     
     **Aquí está la información estructurada que proporcionó:**
     - **Problema Principal:** ${input.mainProblem}
-    - **Contexto:** ${input.context}
-    - **Información del Perro:** ${input.dogInfo}
-    - **Situación Detallada:** "${input.details}"
+    - **Contexto/Escenario:** ${input.context}
+    - **Intensidad/Urgencia:** ${input.intensity}
+    - **Perfil del Perro:** ${input.dogInfo}
+    - **Comorbilidades del Guía:** ${input.comorbidities?.join(', ') || 'Ninguna especificada'}
+    - **Situación Detallada (El Por Qué):** "${input.details}"
 
     **Tu Tarea:**
     Utilizando toda la información proporcionada, crea un plan de entrenamiento paso a paso estructurado, práctico y altamente personalizado siguiendo el método MANADA.
@@ -332,8 +336,10 @@ export function PlannerCard({ className }: { className?: string }) {
     defaultValues: {
         mainProblem: "",
         context: "",
+        intensity: "Moderada",
         dogInfo: "",
-        details: ""
+        details: "",
+        comorbidities: []
     }
   });
 
@@ -408,23 +414,42 @@ export function PlannerCard({ className }: { className?: string }) {
                                 <FormItem>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                         {[
-                                            { id: 'Bark', label: 'Ladridos', icon: '🐕' },
-                                            { id: 'Leash', label: 'Tira Correa', icon: '🦮' },
-                                            { id: 'Anxiety', label: 'Ansiedad', icon: '🏠' },
-                                            { id: 'Fear', label: 'Miedo/Fobia', icon: '😨' },
-                                            { id: 'Basics', label: 'Obediencia', icon: '🎾' },
-                                            { id: 'Destructive', label: 'Destrucción', icon: '🧹' },
+                                            { id: 'Bark', label: 'Ladridos', icon: '/focus/barking.png' },
+                                            { id: 'Leash', label: 'Tira Correa', icon: '/focus/leash.png' },
+                                            { id: 'Anxiety', label: 'Ansiedad', icon: '/focus/anxiety.png' },
+                                            { id: 'Fear', label: 'Miedofobia', icon: '/focus/fear.png' },
+                                            { id: 'Basics', label: 'Obediencia', icon: '/focus/obedience.png' },
+                                            { id: 'Destructive', label: 'Destrucción', icon: '/focus/destruction.png' },
+                                            { id: 'Aggression', label: 'Agresividad', icon: '/focus/aggression.png' },
+                                            { id: 'Guarding', label: 'Protección Recursos', icon: '/focus/guarding.png' },
+                                            { id: 'Reactivity', label: 'Reactividad', icon: '/focus/reactivity.png' },
+                                            { id: 'Hyper', label: 'Hiperactividad', icon: '/focus/hyperactivity.png' },
+                                            { id: 'Shy', label: 'Timidez', icon: '/focus/shyness.png' },
+                                            { id: 'Attention', label: 'Busca Atención', icon: '/focus/attention.png' },
                                         ].map((opt) => (
                                             <div 
                                                 key={opt.id}
                                                 onClick={() => field.onChange(opt.label)}
                                                 className={cn(
-                                                    "cursor-pointer p-4 rounded-2xl border-2 transition-all flex flex-col items-center justify-center text-center gap-2",
-                                                    field.value === opt.label ? "border-primary bg-primary/10 shadow-lg shadow-primary/10" : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05]"
+                                                    "cursor-pointer rounded-2xl border transition-all flex flex-col items-center gap-3 group relative overflow-hidden",
+                                                    field.value === opt.label ? "border-primary bg-primary/10" : "border-white/10 bg-black/20 hover:bg-white/5"
                                                 )}
                                             >
-                                                <span className="text-2xl">{opt.icon}</span>
-                                                <span className="text-[9px] font-black uppercase tracking-tighter leading-tight">{opt.label}</span>
+                                                <div className="w-full aspect-square overflow-hidden relative">
+                                                    <img 
+                                                        src={opt.icon} 
+                                                        alt={opt.label} 
+                                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                                                    />
+                                                    {field.value === opt.label && (
+                                                        <div className="absolute inset-0 bg-primary/20 backdrop-blur-[2px] flex items-center justify-center">
+                                                            <div className="bg-primary text-black rounded-full p-1 shadow-lg">
+                                                                <ThumbsUp className="h-4 w-4" />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <span className="text-[10px] font-black uppercase tracking-tighter text-center pb-3 px-2 line-clamp-1">{opt.label}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -443,11 +468,19 @@ export function PlannerCard({ className }: { className?: string }) {
                                 <FormItem>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         {[
-                                            'Durante los paseos',
-                                            'Solo en casa',
-                                            'Con las visitas',
+                                            'Casa / Hogar',
+                                            'Parque o Jardín',
+                                            'Paseo en la calle',
+                                            'Transporte público',
+                                            'Vehículo particular',
+                                            'Clínica veterinaria',
+                                            'Multitudes / Espacio lleno',
+                                            'Visitas en casa',
                                             'Lugares desconocidos',
-                                            'En todo momento'
+                                            'Aire libre / Excursión',
+                                            'Entorno laboral',
+                                            'Eventos sociales',
+                                            'Emergencias / Ruidos'
                                         ].map((ctx) => (
                                             <div 
                                                 key={ctx}
@@ -468,13 +501,36 @@ export function PlannerCard({ className }: { className?: string }) {
                         />
                     </div>
 
-                    <div className="grid grid-cols-1 gap-6 pt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
+                        <FormField
+                            control={form.control}
+                            name="intensity"
+                            render={({ field }) => (
+                                <FormItem className="space-y-4">
+                                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Intensidad / Urgencia</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger className="h-12 rounded-xl bg-white/5 border-white/10 font-bold">
+                                                <SelectValue placeholder="Selecciona intensidad" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="Baja">Baja (Ocasional)</SelectItem>
+                                            <SelectItem value="Moderada">Moderada (Frecuente)</SelectItem>
+                                            <SelectItem value="Alta">Alta (Constante / Riesgo)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
                         <FormField
                             control={form.control}
                             name="dogInfo"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Observaciones breves</FormLabel>
+                                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Perfil del Perro (Edad, Raza, Socialización)</FormLabel>
                                     <FormControl>
                                         <Input 
                                             placeholder="Ej: Golden de 2 años, muy activo." 
@@ -486,7 +542,41 @@ export function PlannerCard({ className }: { className?: string }) {
                                 </FormItem>
                             )}
                         />
+                    </div>
+
+                    <div className="space-y-4 pt-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Comorbilidades del Guía (Opcional)</Label>
+                        <FormField
+                            control={form.control}
+                            name="comorbidities"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <div className="flex flex-wrap gap-2">
+                                        {['TEPT', 'Ansiedad', 'Fobias', 'Depresión', 'TEA'].map((item) => (
+                                            <Badge
+                                                key={item}
+                                                variant={field.value?.includes(item) ? "default" : "outline"}
+                                                className="cursor-pointer px-4 py-2 rounded-lg transition-all"
+                                                onClick={() => {
+                                                    const current = field.value || [];
+                                                    if (current.includes(item)) {
+                                                        field.onChange(current.filter(v => v !== item));
+                                                    } else {
+                                                        field.onChange([...current, item]);
+                                                    }
+                                                }}
+                                            >
+                                                {item}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
                         
+                    <div className="space-y-4 pt-2">
                         <FormField
                             control={form.control}
                             name="details"

@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Search } from "lucide-react";
-import { SidebarNav } from "./sidebar-nav";
+import dynamic from 'next/dynamic';
 import { useAppState } from "@/context/app-state-provider";
 import { NotificationCenter } from "./notification-center";
+
+const SidebarNav = dynamic(() => import('./sidebar-nav').then(mod => mod.SidebarNav), { ssr: false });
 
 export function Header() {
   const { userProfile, selectedPet } = useAppState();

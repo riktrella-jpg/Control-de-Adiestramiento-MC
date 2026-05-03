@@ -2,13 +2,14 @@
 
 import React, { createContext, useContext, useState, ReactNode, useMemo, useEffect, useCallback } from 'react';
 import { coursesData, Module as CourseModule } from '@/lib/courses-data';
-import { Award, Heart, Shield, Brain, Anchor, Milestone, LucideIcon, Loader2, Compass, Medal, Star } from "lucide-react";
+import { Award, Heart, Shield, Brain, Anchor, Milestone, LucideIcon, Loader2, Compass, Star } from "lucide-react";
 import { User } from '@supabase/supabase-js';
 import { useUser } from '@/hooks/use-user';
 import { useCollection, WithId } from '@/hooks/use-collection';
 import { useDoc } from '@/hooks/use-doc';
 import { createClient } from '@/supabase/client';
 import { logError } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 
 interface Pet {
@@ -33,6 +34,10 @@ export interface FeedbackDetail {
   foco: number;
   timing: number;
   tecnica: number;
+  obediencia: number;
+  vinculo: number;
+  control: number;
+  calma: number;
   comments: string;
   nextSteps: string[];
   evaluatorName?: string;
@@ -74,13 +79,13 @@ export interface UserProfile {
 }
 
 const initialAchievements: Achievement[] = [
-    { id: "ach1", achievementId: "ach1", icon: Milestone, title: "Primer Paseo Consciente", description: "Realizaste tu primer paseo enfocado en el presente.", completed: false },
-    { id: "ach2", achievementId: "ach2", icon: Anchor, title: "Vínculo Fortalecido", description: "Completaste una semana de ejercicios de contacto visual.", completed: false },
-    { id: "ach3", achievementId: "ach3", icon: Shield, title: "Maestro de la Calma", description: "Tu perro esperó su comida con éxito por primera vez.", completed: false },
-    { id: "ach4", achievementId: "ach4", icon: Brain, title: "Superando Miedos", description: "Realizaste la primera sesión de desensibilización.", completed: false },
-    { id: "ach5", achievementId: "ach5", icon: Compass, title: "Ciudadano Ejemplar", description: "Paseaste correctamente en zonas urbanas.", completed: false },
-    { id: "ach6", achievementId: "ach6", icon: Award, title: "Graduación MANADA", description: "Completaste la bitácora y certificación final.", completed: false },
-    { id: "ach7", achievementId: "ach7", icon: Star, title: "Perfeccionamiento Práctico", description: "Dominaste el autocontrol puro y timing.", completed: false },
+    { id: "cert_module1", achievementId: "cert_module1", icon: Award, title: "Certificación: Fundamentos", description: "Completaste el módulo de bases y comunicación canina.", completed: false },
+    { id: "cert_module2", achievementId: "cert_module2", icon: Award, title: "Certificación: Herramientas", description: "Dominaste el equipo y el timing de marcación.", completed: false },
+    { id: "cert_module3", achievementId: "cert_module3", icon: Award, title: "Certificación: MANADA en práctica", description: "Aplicaste las 6 fases del método con éxito.", completed: false },
+    { id: "cert_module4", achievementId: "cert_module4", icon: Award, title: "Certificación: Casos reales", description: "Superaste retos de ansiedad y miedos específicos.", completed: false },
+    { id: "cert_module5", achievementId: "cert_module5", icon: Award, title: "Certificación: Protocolos urbanos", description: "Listo para la convivencia en entornos públicos complejos.", completed: false },
+    { id: "cert_module6", achievementId: "cert_module6", icon: Award, title: "Certificación: Plan y certificación", description: "Graduación oficial del programa MC APP.", completed: false },
+    { id: "cert_module7", achievementId: "cert_module7", icon: Award, title: "Certificación: Perfeccionamiento", description: "Alcanzaste el nivel élite de control y foco.", completed: false },
 ];
 
 interface AppState {
@@ -107,6 +112,7 @@ interface AppState {
   uploadVideo: (file: File) => Promise<void>;
   deleteVideo: (uploadId: string) => Promise<void>;
   refetchUploads: () => Promise<void>;
+  deletePet: (petId: string) => Promise<void>;
 }
 
 const AppStateContext = createContext<AppState | undefined>(undefined);
@@ -152,14 +158,16 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const { data: dbTasksRaw, refetch: refetchTasks, isLoading: isTasksLoading } = useCollection<Task>(
     user ? 'tasks' : null,
     [
-        { column: 'user_id', operator: 'eq', value: user?.id }
+        { column: 'user_id', operator: 'eq', value: user?.id },
+        { column: 'pet_id', operator: 'eq', value: selectedPet?.id }
     ]
   );
 
   const { data: dbUploadsRaw, refetch: refetchUploads } = useCollection<Upload>(
     user ? 'uploads' : null,
     [
-        { column: 'user_id', operator: 'eq', value: user?.id }
+        { column: 'user_id', operator: 'eq', value: user?.id },
+        { column: 'pet_id', operator: 'eq', value: selectedPet?.id }
     ]
   );
 
@@ -170,7 +178,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     ]
   );
 
-  const { data: dbAchievementsRaw, refetch: refetchAchievements } = useCollection<Achievement>(
+  const { data: dbAchievementsRaw, refetch: refetchAchievements, isLoading: isAchievementsLoading } = useCollection<Achievement>(
     user ? 'achievements' : null,
     [
         { column: 'user_id', operator: 'eq', value: user?.id }
@@ -204,53 +212,86 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   }, [user, userProfile, isProfileLoading, supabase, refetchUserProfile]);
 
   useEffect(() => {
+    // Solo actuamos si hay un usuario, no estamos cargando y la lista está vacía
     if (user && pets.length === 0 && !isPetsLoading && !isCreatingPetRef.current) {
-        isCreatingPetRef.current = true;
         const createDefaultPet = async () => {
-            // Double-check in DB before inserting to prevent race conditions
-            const { data: existing } = await supabase.from('pets').select('id').eq('user_id', user.id).limit(1);
-            if (existing && existing.length > 0) {
+            if (isCreatingPetRef.current) return;
+            isCreatingPetRef.current = true;
+
+            try {
+                // Triple verificación: consultar directamente a Supabase antes de insertar
+                const { data: existing, error: checkError } = await supabase
+                    .from('pets')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .limit(1);
+
+                if (checkError) throw checkError;
+
+                if (existing && existing.length > 0) {
+                    console.log("Pet already exists, skipping creation");
+                    await refetchPets();
+                    return;
+                }
+
+                const name = userProfile?.dogName || user.user_metadata?.dog_name || "Mi Primogénito";
+                const photo = userProfile?.dogPhotoURL || user.user_metadata?.dog_photo_url;
+                
+                await supabase.from('pets').insert({
+                    user_id: user.id,
+                    name: name,
+                    photo_url: photo,
+                    level: 'Principiante'
+                });
+                
                 await refetchPets();
-                isCreatingPetRef.current = false;
-                return;
+            } catch (err) {
+                console.error("Error creating default pet:", err);
+            } finally {
+                // Pequeño delay para asegurar que el estado de 'pets' se actualice antes de permitir otra creación
+                setTimeout(() => {
+                    isCreatingPetRef.current = false;
+                }, 2000);
             }
-            const name = userProfile?.dogName || user.user_metadata?.dog_name || "Mi Primogénito";
-            const photo = userProfile?.dogPhotoURL || user.user_metadata?.dog_photo_url;
-            await supabase.from('pets').insert({
-                user_id: user.id,
-                name: name,
-                photo_url: photo,
-                level: 'Principiante'
-            });
-            await refetchPets();
-            isCreatingPetRef.current = false;
         };
         createDefaultPet();
     }
   }, [user, pets, isPetsLoading, userProfile, supabase, refetchPets]);
 
+  const deletePet = async (petId: string) => {
+    try {
+        const { error } = await supabase.from('pets').delete().eq('id', petId);
+        if (error) throw error;
+        await refetchPets();
+        if (selectedPetId === petId) {
+            setSelectedPetId(null);
+        }
+    } catch (error: any) {
+        console.error("Error deleting pet:", error);
+        throw error;
+    }
+  };
+
   const uploads = useMemo(() => dbUploadsRaw || [], [dbUploadsRaw]);
   const tasks = useMemo(() => dbTasksRaw || [], [dbTasksRaw]);
-  const dbModuleProgress = useMemo(() => dbProgressRaw || [], [dbProgressRaw]);
-  const dbAchievements = useMemo(() => dbAchievementsRaw || [], [dbAchievementsRaw]);
+  const dbModuleProgress = useMemo(() => {
+    if (!dbProgressRaw || !selectedPet || !user) return [];
+    // Filtro y mapeo para manejar el truco de "Módulos Virtuales" para multi-binomio
+    return dbProgressRaw
+      .filter(p => p.moduleId && p.moduleId.endsWith(`:${selectedPet.id}`))
+      .map(p => ({
+        ...p,
+        moduleId: p.moduleId.split(':')[0] // Devolver el ID real (ej. 'module1') para que la UI lo reconozca
+      }));
+  }, [dbProgressRaw, selectedPet, user]);
 
-  const selectPet = (petId: string) => {
-    setSelectedPetId(petId);
-    localStorage.setItem('mc26_selected_pet', petId);
-  };
+  const dbAchievements = useMemo(() => {
+    if (!dbAchievementsRaw || !selectedPet || !user) return [];
+    // Si la tabla tiene pet_id lo usamos, si no, intentamos deducirlo o mostramos todo (logros suelen ser globales o por perro)
+    return dbAchievementsRaw.filter(a => !a.pet_id || a.pet_id === selectedPet.id);
+  }, [dbAchievementsRaw, selectedPet, user]);
 
-  const addPet = async (name: string, breed?: string) => {
-    if (!user) throw new Error("No user");
-    const { data, error } = await supabase.from('pets').insert({
-      user_id: user.id,
-      name,
-      level: 'Principiante'
-    }).select().single();
-    if (error) throw error;
-    await refetchPets();
-    selectPet(data.id);
-    return data;
-  };
+  const router = useRouter();
 
   const modules = useMemo(() => {
     return coursesData.map(module => {
@@ -276,6 +317,60 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const completedWeeks = useMemo(() => modules.reduce((acc, m) => acc + m.weeks.filter(w => w.completed).length, 0), [modules]);
   const progress = useMemo(() => totalWeeks === 0 ? 0 : Math.round((completedWeeks / totalWeeks) * 100), [completedWeeks, totalWeeks]);
 
+  // Auto-unlock achievements when course is 100% complete
+  useEffect(() => {
+    if (!isMounted || !user || !selectedPet || modules.length === 0 || isAchievementsLoading) return;
+    
+    const checkAndUnlock = async () => {
+      let changed = false;
+      for (const module of modules) {
+        const isModuleComplete = module.weeks.every(w => w.completed);
+        if (isModuleComplete) {
+          const achId = `cert_${module.id}`;
+          const alreadyUnlocked = dbAchievements.some(a => a.achievementId === achId && a.completed);
+          
+          if (!alreadyUnlocked) {
+            console.log(`Auto-unlocking achievement for ${module.id}`);
+            const { error } = await supabase.from('achievements').upsert({
+              user_id: user.id,
+              pet_id: selectedPet.id,
+              achievementId: achId,
+              completed: true,
+              updatedAt: new Date().toISOString()
+            }, { onConflict: 'user_id,pet_id,achievementId' });
+            
+            if (!error) changed = true;
+          }
+        }
+      }
+      if (changed) {
+        refetchAchievements();
+      }
+    };
+
+    checkAndUnlock();
+  }, [isMounted, modules, user, selectedPet, dbAchievements, isAchievementsLoading, supabase, refetchAchievements]);
+
+
+  const selectPet = (petId: string) => {
+    setSelectedPetId(petId);
+    localStorage.setItem('mc26_selected_pet', petId);
+    router.push('/dashboard');
+  };
+
+  const addPet = async (name: string, breed?: string) => {
+    if (!user) throw new Error("No user");
+    const { data, error } = await supabase.from('pets').insert({
+      user_id: user.id,
+      name,
+      level: 'Principiante'
+    }).select().single();
+    if (error) throw error;
+    await refetchPets();
+    selectPet(data.id);
+    return data;
+  };
+
   const toggleWeekCompletion = useCallback(async (moduleId: string, weekId: string, dryRun = false, forceComplete?: boolean) => {
     if (!user || !selectedPet) return { isLocked: true, message: "No pet selected" };
     const current = dbModuleProgress.find(p => p.moduleId === moduleId);
@@ -294,15 +389,18 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     
     if (!dryRun) {
         try {
+            // TRUCO: Usamos un moduleId virtual (moduleId:petId) para saltar la restricción unique_user_module de la DB
+            const virtualModuleId = `${moduleId}:${selectedPet.id}`;
             const { error } = await supabase.from('module_progress').upsert({
-              id: `${user.id}:${moduleId}`,
+              id: `${user.id}:${selectedPet.id}:${moduleId}`,
               user_id: user.id,
-              moduleId,
+              moduleId: virtualModuleId,
               completedWeekIds: newItems,
               updatedAt: new Date().toISOString()
-            });
+            }, { onConflict: 'id' });
+            
             if (error) {
-                await logError("toggleWeekCompletion", error);
+                console.error("Error en upsert module_progress:", error);
                 throw error;
             }
             await refetchModuleProgress();
@@ -320,6 +418,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     if (!trimmed) throw new Error("La tarea no puede estar vacía.");
 
     const payload: Record<string, any> = {
+      id: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
       user_id: user.id,
       label: trimmed,
       done: false,
@@ -348,8 +447,10 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
       if (!task.done && task.label.startsWith('[M')) {
         const match = task.label.match(/\[M(\d+)-S(\d+)\]/);
         if (match) {
-          const mId = `m${match[1]}`;
-          const wId = `w${match[1]}_${match[2]}`;
+          const moduleNum = match[1];
+          const weekNum = match[2];
+          const mId = `module${moduleNum}`;
+          const wId = `m${moduleNum}w${weekNum}`;
           try {
             await toggleWeekCompletion(mId, wId, false, true);
           } catch (weekErr: any) {
@@ -383,7 +484,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const uploadVideo = useCallback(async (file: File) => {
      if (!user || !selectedPet) return;
      try {
-         const fileId = Math.random().toString(36).substring(7);
+         const fileId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
          const path = `${user.id}/${selectedPet.id}/${fileId}-${file.name}`;
          const { error: uploadError } = await supabase.storage.from('uploads').upload(path, file);
          if (uploadError) throw uploadError;
@@ -391,7 +492,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
          const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(path);
          const { error: insertError } = await supabase.from('uploads').insert({
            id: fileId, name: file.name, url: publicUrl, type: file.type, size: file.size,
-           user_id: user.id, status: 'pending'
+           user_id: user.id, pet_id: selectedPet.id, status: 'pending'
          });
          if (insertError) throw insertError;
 

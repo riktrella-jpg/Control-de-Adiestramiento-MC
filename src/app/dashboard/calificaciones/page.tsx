@@ -3,83 +3,33 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle2, AlertCircle, Star, Video, ArrowRight, Target, Zap, Clock } from "lucide-react";
+import { CheckCircle2, AlertCircle, Star, Video, ArrowRight, Target, Zap, Clock, Quote, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAppState } from "@/context/app-state-provider";
 
-// --- MODELO DE DATOS (Ejemplo para Arquitectura) ---
+// --- UTILS ---
+const getFocusIcon = (taskName: string) => {
+    const name = taskName.toLowerCase();
+    if (name.includes('ladrid') || name.includes('bark')) return '/focus/barking.png';
+    if (name.includes('correa') || name.includes('leash')) return '/focus/leash.png';
+    if (name.includes('ansiedad') || name.includes('anxiety')) return '/focus/anxiety.png';
+    if (name.includes('miedo') || name.includes('fear') || name.includes('fobia')) return '/focus/fear.png';
+    if (name.includes('obed') || name.includes('basic') || name.includes('sentado') || name.includes('quieto')) return '/focus/obedience.png';
+    if (name.includes('destruc')) return '/focus/destruction.png';
+    if (name.includes('agres')) return '/focus/aggression.png';
+    if (name.includes('protección') || name.includes('recurso') || name.includes('guard')) return '/focus/guarding.png';
+    if (name.includes('reactiv')) return '/focus/reactivity.png';
+    if (name.includes('hiper')) return '/focus/hyperactivity.png';
+    if (name.includes('timid') || name.includes('shy')) return '/focus/shyness.png';
+    if (name.includes('atención') || name.includes('attention')) return '/focus/attention.png';
+    return '/focus/generic.png';
+};
+
 type EvaluationStatus = 'excellent' | 'approved' | 'needs_improvement' | 'pending';
 
-interface FeedbackMetrics {
-    focus: number; // 0-100
-    timing: number; // 0-100
-    technique: number; // 0-100
-}
-
-interface Submission {
-    id: string;
-    taskName: string;
-    submittedAt: Date;
-    status: EvaluationStatus;
-    videoUrl?: string;
-    feedback?: {
-        trainerName: string;
-        trainerAvatar?: string;
-        reviewedAt: Date;
-        generalComment: string;
-        actionableItems: string[];
-        metrics?: FeedbackMetrics;
-    };
-}
-
-// --- DATOS SIMULADOS (Para demostrar la UX/UI) ---
-const mockSubmissions: Submission[] = [
-    {
-        id: "sub-1",
-        taskName: "Autocontrol: Esperar la comida",
-        submittedAt: new Date('2026-04-03T10:00:00Z'),
-        status: 'needs_improvement',
-        feedback: {
-            trainerName: "Carlos Entrenador",
-            trainerAvatar: "https://i.pravatar.cc/150?u=carlos",
-            reviewedAt: new Date('2026-04-03T14:00:00Z'),
-            generalComment: "¡Van por muy buen camino! Haku tiene la intención correcta, pero se está frustrando un poco al final. Necesitamos ajustar el 'timing' (el momento exacto) en el que le entregas el premio para evitar que rompa la posición antes de tiempo.",
-            actionableItems: [
-                "Reduce el tiempo de espera a solo 2 segundos antes de premiar.",
-                "Asegúrate de decir la palabra liberadora ('¡Ya!') ANTES de mover la mano hacia él.",
-                "Si se levanta, retira el plato calmadamente, sin regañar, y vuelve a empezar."
-            ],
-            metrics: {
-                focus: 85,
-                timing: 40,
-                technique: 70
-            }
-        }
-    },
-    {
-        id: "sub-2",
-        taskName: "Apego Seguro: Llamada en interior",
-        submittedAt: new Date('2026-03-30T10:00:00Z'),
-        status: 'excellent',
-        feedback: {
-            trainerName: "Ana Especialista",
-            trainerAvatar: "https://i.pravatar.cc/150?u=ana",
-            reviewedAt: new Date('2026-03-31T10:00:00Z'),
-            generalComment: "¡Ejecución perfecta! Me encantó cómo usaste un tono de voz agudo y motivador. Haku respondió inmediatamente y la entrega del premio fue fluida. Este es el estándar que buscamos.",
-            actionableItems: [
-                "Mantén esta misma energía.",
-                "Siguiente reto: Intenta hacerlo en una habitación diferente para añadir un poco de dificultad."
-            ],
-            metrics: {
-                focus: 95,
-                timing: 100,
-                technique: 90
-            }
-        }
-    }
-];
 
 // --- COMPONENTES AUXILIARES ---
 
@@ -160,41 +110,55 @@ export default function CalificacionesPage() {
                         <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-background bg-primary/20 text-primary shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
                             <Video className="w-4 h-4" />
                         </div>
-                        
                         {/* Card */}
-                        <Card className="w-[calc(100%-3rem)] md:w-[calc(50%-2.5rem)] shadow-sm hover:shadow-md transition-shadow">
-                            <CardHeader className="pb-3">
-                                <div className="flex justify-between items-start mb-2">
+                        <Card className="w-[calc(100%-3rem)] md:w-[calc(50%-2.5rem)] shadow-xl hover:shadow-2xl transition-all border-white/5 bg-black/40 backdrop-blur-xl rounded-3xl overflow-hidden group/card relative">
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover/card:opacity-30 transition-opacity w-16 h-16">
+                                <Image src={getFocusIcon(sub.name)} alt="focus" fill className="grayscale object-contain" />
+                            </div>
+                            <CardHeader className="pb-3 relative z-10">
+                                <div className="flex justify-between items-start mb-3">
                                     <StatusBadge status={sub.status as any || 'pending'} />
-                                    <span className="text-xs text-muted-foreground flex items-center">
-                                        <Clock className="w-3 h-3 mr-1" />
-                                        {new Date(sub.createdAt || Date.now()).toLocaleDateString()}
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center">
+                                        <Clock className="w-3 h-3 mr-1 text-primary" />
+                                        {new Date(sub.createdAt || Date.now()).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
                                     </span>
                                 </div>
-                                <CardTitle className="text-lg">{sub.name}</CardTitle>
+                                <div className="flex gap-4 items-start">
+                                    <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 group-hover/card:border-primary/50 transition-colors relative">
+                                        <Image src={getFocusIcon(sub.name)} alt={sub.name} fill className="object-contain p-2" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-lg font-black uppercase tracking-tighter text-white leading-tight">{sub.name}</CardTitle>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60 mt-1">Evidencia Técnica</p>
+                                    </div>
+                                </div>
                             </CardHeader>
                             
                             {(sub.feedback || sub.feedback_detail) && (
-                                <CardContent className="space-y-4">
+                                <CardContent className="space-y-5 relative z-10">
                                     {/* Trainer Info & Comment */}
-                                    <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                                    <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 space-y-4">
                                         <div className="flex items-center gap-3">
-                                            <Avatar className="w-8 h-8 border border-border">
-                                                <AvatarFallback>{sub.feedback_detail?.evaluatorName?.[0] || 'E'}</AvatarFallback>
+                                            <Avatar className="w-10 h-10 border-2 border-primary/20">
+                                                <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${sub.feedback_detail?.evaluatorName || "Ricardo"}`} />
+                                                <AvatarFallback className="bg-primary/20 text-primary font-black">{(sub.feedback_detail?.evaluatorName?.[0] || 'R').toUpperCase()}</AvatarFallback>
                                             </Avatar>
                                             <div>
-                                                <p className="text-sm font-medium leading-none">{sub.feedback_detail?.evaluatorName || "Tutor Evaluador"}</p>
-                                                <p className="text-xs text-muted-foreground mt-1">{sub.feedback_detail?.evaluatorRole || "Equipo de Revisión"}</p>
+                                                <p className="text-xs font-black uppercase tracking-widest text-white">{sub.feedback_detail?.evaluatorName || "Ricardo Estrella"}</p>
+                                                <p className="text-[10px] font-black text-primary/70 uppercase tracking-widest mt-0.5">{sub.feedback_detail?.evaluatorRole || "Lead Trainer"}</p>
                                             </div>
                                         </div>
-                                        <p className="text-sm leading-relaxed text-foreground/90">
-                                            &quot;{sub.feedback || sub.feedback_detail?.comments}&quot;
-                                        </p>
+                                        <div className="relative">
+                                            <Quote className="h-8 w-8 text-primary/10 absolute -top-2 -left-2" />
+                                            <p className="text-sm font-medium leading-relaxed text-slate-300 relative pl-4 border-l-2 border-primary/20">
+                                                {sub.feedback || sub.feedback_detail?.comments}
+                                            </p>
+                                        </div>
                                     </div>
 
                                     {/* Metrics (Optional) */}
                                     {sub.feedback_detail && (
-                                        <div className="grid grid-cols-3 gap-4 py-2">
+                                        <div className="grid grid-cols-3 gap-4 py-2 border-t border-white/5 pt-4">
                                             <MetricBar label="Foco" value={sub.feedback_detail.foco || 0} icon={Target} />
                                             <MetricBar label="Timing" value={sub.feedback_detail.timing || 0} icon={Zap} />
                                             <MetricBar label="Técnica" value={sub.feedback_detail.tecnica || 0} icon={Star} />
@@ -203,16 +167,16 @@ export default function CalificacionesPage() {
 
                                     {/* Actionable Items */}
                                     {sub.feedback_detail?.nextSteps && sub.feedback_detail.nextSteps.length > 0 && (
-                                        <div className="space-y-2 pt-2 border-t">
-                                            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center">
-                                                <ArrowRight className="w-3 h-3 mr-1 text-primary" /> 
-                                                Siguientes Pasos
+                                        <div className="space-y-3 pt-4 border-t border-white/5">
+                                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center">
+                                                <ArrowRight className="w-3 h-3 mr-2" /> 
+                                                Plan de Acción
                                             </h4>
                                             <ul className="space-y-2">
                                                 {sub.feedback_detail.nextSteps.map((item: string, i: number) => (
-                                                    <li key={i} className="text-sm flex items-start gap-2">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
-                                                        <span className="text-foreground/80">{item}</span>
+                                                    <li key={i} className="text-xs font-bold text-slate-400 flex items-start gap-3 bg-white/[0.02] p-2.5 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+                                                        <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] text-primary shrink-0 font-black">{i+1}</div>
+                                                        <span className="pt-0.5">{item}</span>
                                                     </li>
                                                 ))}
                                             </ul>
@@ -222,7 +186,10 @@ export default function CalificacionesPage() {
                             )}
                             {(!sub.feedback && !sub.feedback_detail) && (
                                 <CardContent>
-                                    <p className="text-sm text-muted-foreground italic">Video en espera de revisión profesional.</p>
+                                    <div className="p-8 text-center bg-white/[0.02] border border-dashed border-white/10 rounded-2xl">
+                                        <Loader2 className="w-8 h-8 text-primary/30 mx-auto mb-3 animate-spin" />
+                                        <p className="text-xs font-black uppercase tracking-widest text-muted-foreground italic">Video en espera de revisión profesional.</p>
+                                    </div>
                                 </CardContent>
                             )}
                         </Card>

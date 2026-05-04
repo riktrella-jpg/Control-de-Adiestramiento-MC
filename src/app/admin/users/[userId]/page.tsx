@@ -111,13 +111,15 @@ export default function AdminUserPage() {
   const handleSaveFeedback = async (uploadId: string) => {
     setIsSaving(prev => ({ ...prev, [uploadId]: true }));
     
+    const targetUpload = uploads?.find(u => u.id === uploadId);
+    
     // Construct professional feedback object
     const feedbackDetail = {
-        obediencia: obedienciaMap[uploadId] ?? upload.feedback_detail?.obediencia ?? 80,
-        vinculo: vinculoMap[uploadId] ?? upload.feedback_detail?.vinculo ?? 80,
-        foco: focoMap[uploadId] ?? upload.feedback_detail?.foco ?? 80,
-        control: controlMap[uploadId] ?? upload.feedback_detail?.control ?? 80,
-        calma: calmaMap[uploadId] ?? upload.feedback_detail?.calma ?? 80,
+        obediencia: obedienciaMap[uploadId] ?? targetUpload?.feedback_detail?.obediencia ?? 80,
+        vinculo: vinculoMap[uploadId] ?? targetUpload?.feedback_detail?.vinculo ?? 80,
+        foco: focoMap[uploadId] ?? targetUpload?.feedback_detail?.foco ?? 80,
+        control: controlMap[uploadId] ?? targetUpload?.feedback_detail?.control ?? 80,
+        calma: calmaMap[uploadId] ?? targetUpload?.feedback_detail?.calma ?? 80,
         // Mantener campos antiguos por compatibilidad si es necesario
         timing: 80,
         tecnica: 80,
@@ -140,7 +142,6 @@ export default function AdminUserPage() {
       await refetchUploads();
 
       // Disparar Notificación por Correo y App
-      const targetUpload = uploads?.find(u => u.id === uploadId);
       if (userProfile && userProfile.email) {
          try {
            const response = await fetch('/api/notify', {

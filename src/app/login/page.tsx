@@ -146,17 +146,22 @@ export default function LoginPage() {
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden selection:bg-primary/20 bg-white">
       {/* BACKGROUND IMAGE - Seamless Integration */}
-      <div 
-        className="fixed inset-0 bg-cover bg-center lg:bg-right transition-all duration-1000 z-0 opacity-20 lg:opacity-60" 
-        style={{ 
-          backgroundImage: "url('/login-illustration.png')",
-          maskImage: 'radial-gradient(circle at center right, black 30%, transparent 80%)',
-          WebkitMaskImage: 'radial-gradient(circle at center right, black 30%, transparent 80%)'
-        }}
-      />
+      <div className="fixed inset-0 z-0">
+        <Image
+          src="/login-illustration.png"
+          alt="Background"
+          fill
+          className="object-cover object-center lg:object-right opacity-20 lg:opacity-60"
+          style={{ 
+            maskImage: 'radial-gradient(circle at center right, black 30%, transparent 80%)',
+            WebkitMaskImage: 'radial-gradient(circle at center right, black 30%, transparent 80%)'
+          }}
+          priority
+        />
+      </div>
       
       {/* Dynamic Overlay for depth and integration */}
-      <div className="fixed inset-0 bg-gradient-to-tr from-white via-white/80 to-transparent z-1" />
+      <div className="fixed inset-0 bg-gradient-to-tr from-white via-white/80 to-transparent z-[1]" />
 
       {/* CONTENT LAYER */}
       <div className="relative z-10 flex min-h-screen">

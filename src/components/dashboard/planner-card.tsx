@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -436,10 +437,11 @@ export function PlannerCard({ className }: { className?: string }) {
                                                 )}
                                             >
                                                 <div className="w-full aspect-square overflow-hidden relative">
-                                                    <img 
+                                                    <Image 
                                                         src={opt.icon} 
                                                         alt={opt.label} 
-                                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                                                        fill
+                                                        className="object-cover transition-transform duration-500 group-hover:scale-110" 
                                                     />
                                                     {field.value === opt.label && (
                                                         <div className="absolute inset-0 bg-primary/20 backdrop-blur-[2px] flex items-center justify-center">

@@ -258,20 +258,6 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user, pets, isPetsLoading, userProfile, supabase, refetchPets]);
 
-  const deletePet = async (petId: string) => {
-    try {
-        const { error } = await supabase.from('pets').delete().eq('id', petId);
-        if (error) throw error;
-        await refetchPets();
-        if (selectedPetId === petId) {
-            setSelectedPetId(null);
-        }
-    } catch (error: any) {
-        console.error("Error deleting pet:", error);
-        throw error;
-    }
-  };
-
   const uploads = useMemo(() => dbUploadsRaw || [], [dbUploadsRaw]);
   const tasks = useMemo(() => dbTasksRaw || [], [dbTasksRaw]);
   const dbModuleProgress = useMemo(() => {
@@ -370,6 +356,22 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     selectPet(data.id);
     return data;
   };
+
+  const deletePet = useCallback(async (petId: string) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase.from('pets').delete().eq('id', petId);
+      if (error) throw error;
+      await refetchPets();
+      if (selectedPet?.id === petId) {
+        setSelectedPetId("");
+        localStorage.removeItem('mc26_selected_pet');
+      }
+    } catch (error: any) {
+      await logError("deletePet", error);
+      throw error;
+    }
+  }, [user, selectedPet, supabase, refetchPets]);
 
   const toggleWeekCompletion = useCallback(async (moduleId: string, weekId: string, dryRun = false, forceComplete?: boolean) => {
     if (!user || !selectedPet) return { isLocked: true, message: "No pet selected" };
@@ -526,9 +528,9 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo(() => ({
     progress, modules, tasks, isTasksLoading, uploads, achievements, pets, selectedPet, user, userProfile, isAdmin,
     addPetOpen, setAddPetOpen,
-    selectPet, addPet, toggleWeekCompletion, toggleTaskCompletion, addTask, toggleAchievementCompletion,
+    selectPet, addPet, deletePet, toggleWeekCompletion, toggleTaskCompletion, addTask, toggleAchievementCompletion,
     updateDogPhoto, uploadVideo, deleteVideo, refetchUploads
-  }), [progress, modules, tasks, isTasksLoading, uploads, achievements, pets, selectedPet, user, userProfile, isAdmin, addPetOpen, selectPet, addPet, toggleWeekCompletion, toggleTaskCompletion, addTask, toggleAchievementCompletion, updateDogPhoto, uploadVideo, deleteVideo, refetchUploads]);
+  }), [progress, modules, tasks, isTasksLoading, uploads, achievements, pets, selectedPet, user, userProfile, isAdmin, addPetOpen, selectPet, addPet, deletePet, toggleWeekCompletion, toggleTaskCompletion, addTask, toggleAchievementCompletion, updateDogPhoto, uploadVideo, deleteVideo, refetchUploads]);
 
   if (!isMounted || isUserLoading) return <div className="flex h-screen items-center justify-center bg-black"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
 

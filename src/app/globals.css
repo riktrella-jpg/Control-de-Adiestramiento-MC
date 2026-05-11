@@ -104,6 +104,7 @@ body {
   }
 }
 
+@layer utilities {
   .text-vintage-mustard { color: hsl(38 48% 65%); }
   .text-vintage-teal { color: hsl(195 25% 55%); }
   .text-vintage-terracotta { color: hsl(8 40% 65%); }

@@ -21,7 +21,7 @@ export function DogProfileCard({ className }: { className?: string }) {
           <div className="relative">
             <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-125 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
             <Avatar className="h-20 w-20 ring-4 ring-primary/20 ring-offset-4 ring-offset-black shadow-2xl relative z-10 transition-transform duration-500 group-hover:scale-105">
-              <AvatarImage src={selectedPet?.photo_url ?? "https://picsum.photos/seed/haku/100/100"} alt={selectedPet?.name ?? "Dog"} className="sepia-[.4] saturate-[1.5] hue-rotate-[-10deg]" />
+              <AvatarImage src={selectedPet?.photo_url ?? "https://picsum.photos/seed/haku/100/100"} alt={selectedPet?.name ?? "Dog"} className="filter-vintage-art" />
               <AvatarFallback className="text-2xl font-black bg-primary/10 text-primary">{selectedPet?.name?.[0].toUpperCase() ?? 'D'}</AvatarFallback>
             </Avatar>
             <div className="absolute -bottom-2 -right-2 bg-primary text-black h-8 w-8 rounded-full flex items-center justify-center font-black text-xs shadow-lg ring-4 ring-black z-20">

@@ -75,7 +75,7 @@ export function ActiveCoursesCard({ className }: { className?: string }) {
                           src={modules.find(m => m.id === course.id)!.imageUrl!} 
                           alt={course.title}
                           fill
-                          className="object-cover sepia-[.6] saturate-[1.8] hue-rotate-[-15deg] contrast-110"
+                          className="object-cover filter-vintage-art"
                         />
                       ) : (
                         <span className="drop-shadow-md relative z-10">{course.icon}</span>

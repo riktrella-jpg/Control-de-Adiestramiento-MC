@@ -157,7 +157,7 @@ export default function CoursesPage() {
                                                     src={module.imageUrl} 
                                                     alt={module.title} 
                                                     fill
-                                                    className="object-cover sepia-[.6] saturate-[1.8] hue-rotate-[-15deg] contrast-110"
+                                                    className="object-cover filter-vintage-art"
                                                 />
                                             ) : (
                                                 module.icon

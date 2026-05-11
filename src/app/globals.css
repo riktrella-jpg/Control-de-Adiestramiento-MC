@@ -9,93 +9,71 @@ body {
 
 @layer base {
   :root {
-    /* Warm, light background */
-    --background: 30 20% 98%;
-    --foreground: 20 14% 15%;
+    /* Vintage Palette Root */
+    --background: 30 30% 95%;
+    --foreground: 20 15% 15%;
     --card: 0 0% 100%;
-    --card-foreground: 20 14% 15%;
+    --card-foreground: 20 15% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 20 14% 15%;
+    --popover-foreground: 20 15% 15%;
     
-    /* Vibrant Orange/Amber for primary action */
-    --primary: 32 95% 54%; /* Vibrant Orange */
-    --primary-foreground: 0 0% 100%;
+    --primary: 38 48% 50%; /* Muted Mustard */
+    --primary-foreground: 30 30% 98%;
     
-    /* Warm secondary */
-    --secondary: 30 20% 92%;
-    --secondary-foreground: 20 14% 15%;
+    --secondary: 195 25% 45%; /* Muted Teal */
+    --secondary-foreground: 0 0% 100%;
     
-    --muted: 30 20% 92%;
-    --muted-foreground: 25 10% 45%;
+    --muted: 30 15% 90%;
+    --muted-foreground: 25 10% 40%;
     
-    --accent: 32 95% 94%;
-    --accent-foreground: 32 95% 34%;
+    --accent: 8 40% 55%; /* Muted Terracotta */
+    --accent-foreground: 0 0% 100%;
     
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     
     --border: 30 15% 85%;
     --input: 30 15% 85%;
-    --ring: 32 95% 54%;
+    --ring: 38 48% 50%;
     
-    --chart-1: 32 95% 54%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 47 75% 69%;
-    --chart-4: 340 75% 55%;
-    --chart-5: 205 39% 24%;
+    --chart-1: 38 48% 50%;
+    --chart-2: 195 25% 45%;
+    --chart-3: 8 40% 55%;
+    --chart-4: 95 20% 50%;
+    --chart-5: 30 10% 30%;
     
-    --radius: 0.75rem;
+    --radius: 1rem;
     
-    --sidebar-background: 30 20% 98%;
-    --sidebar-foreground: 20 14% 15%;
-    --sidebar-primary: 32 95% 54%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 30 20% 92%;
-    --sidebar-accent-foreground: 20 14% 15%;
+    --sidebar-background: 30 30% 95%;
+    --sidebar-foreground: 20 15% 15%;
+    --sidebar-primary: 38 48% 50%;
+    --sidebar-primary-foreground: 30 30% 98%;
+    --sidebar-accent: 30 15% 90%;
+    --sidebar-accent-foreground: 20 15% 15%;
     --sidebar-border: 30 15% 85%;
-    --sidebar-ring: 32 95% 54%;
+    --sidebar-ring: 38 48% 50%;
   }
   .dark {
-    /* Pure Black Background */
-    --background: 0 0% 0%;
-    --foreground: 0 0% 100%;
+    --background: 0 0% 5%; /* Very dark brown/black */
+    --foreground: 30 20% 90%;
     
-    /* Rich Indigo for Cards/Panels - Slightly lighter than background for depth */
-    --card: 260 40% 4%;
-    --card-foreground: 0 0% 100%;
-    --popover: 260 40% 4%;
-    --popover-foreground: 0 0% 100%;
+    --card: 30 10% 8%;
+    --card-foreground: 30 20% 90%;
     
-    /* Midpoint of the gradient for primary actions */
-    --primary: 230 100% 75%;
+    --primary: 38 48% 65%; /* Brightened Vintage Mustard */
     --primary-foreground: 0 0% 0%;
     
-    --secondary: 180 100% 50%;
+    --secondary: 195 25% 55%; /* Brightened Vintage Teal */
     --secondary-foreground: 0 0% 0%;
     
-    --muted: 260 30% 10%;
-    --muted-foreground: 0 0% 70%;
+    --muted: 30 15% 12%;
+    --muted-foreground: 30 10% 60%;
     
-    --accent: 280 80% 65%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 8 40% 65%; /* Brightened Vintage Terracotta */
+    --accent-foreground: 0 0% 0%;
     
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    
-    --border: 260 30% 15%;
-    --input: 260 30% 15%;
-    --ring: 230 100% 75%;
-    
-    --radius: 1.5rem;
-
-    --sidebar-background: 0 0% 0%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 230 100% 75%;
-    --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 260 30% 10%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 260 30% 12%;
-    --sidebar-ring: 230 100% 75%;
+    --border: 30 15% 15%;
+    --ring: 38 48% 65%;
   }
 }
 
@@ -126,12 +104,22 @@ body {
   }
 }
 
-@layer utilities {
-  .text-white-pure {
-    color: #FFFFFF !important;
+  .text-vintage-mustard { color: hsl(38 48% 65%); }
+  .text-vintage-teal { color: hsl(195 25% 55%); }
+  .text-vintage-terracotta { color: hsl(8 40% 65%); }
+  .text-vintage-sage { color: hsl(95 20% 55%); }
+
+  .bg-vintage-card {
+    background-color: hsl(30 10% 8%);
+    border: 1px solid hsl(30 15% 15%);
   }
-  
+
+  /* El filtro "Arte Mudo" para las imágenes */
+  .filter-vintage-art {
+    filter: grayscale(0.2) saturate(0.6) sepia(0.35) contrast(1.1) brightness(1.05) hue-rotate(10deg);
+  }
+
   .bg-glass {
-    @apply bg-white/[0.03] backdrop-blur-2xl border border-white/10;
+    @apply bg-white/[0.03] backdrop-blur-3xl border border-white/10;
   }
 }

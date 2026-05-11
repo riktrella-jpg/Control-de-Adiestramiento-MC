@@ -441,7 +441,7 @@ export function PlannerCard({ className }: { className?: string }) {
                                                         src={opt.icon} 
                                                         alt={opt.label} 
                                                         fill
-                                                        className="object-cover transition-transform duration-500 group-hover:scale-110 sepia-[.8] saturate-[2.5] hue-rotate-[-25deg] contrast-110 brightness-110" 
+                                                        className="object-cover transition-transform duration-500 group-hover:scale-110 filter-vintage-art" 
                                                     />
                                                     
                                                     {field.value === opt.label && (

@@ -9,9 +9,9 @@ export const metadata: Metadata = {
   title: "MANADA CLUB - Entrenamiento Canino",
   description: "Transforma la vida de tu perro con el método MANADA. Entrenamiento de élite y apego seguro.",
   icons: {
-    icon: "/logo_new.png",
-    shortcut: "/logo_new.png",
-    apple: "/logo_new.png",
+    icon: "/logo_transparent.png",
+    shortcut: "/logo_transparent.png",
+    apple: "/logo_transparent.png",
   },
   openGraph: {
     title: "MANADA CLUB - Entrenamiento Canino",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     siteName: "MANADA CLUB",
     images: [
       {
-        url: "/logo_new.png",
+        url: "/logo_transparent.png",
         width: 800,
         height: 800,
         alt: "MANADA CLUB Logo",
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "MANADA CLUB",
     description: "Entrenamiento canino de élite.",
-    images: ["/logo_new.png"],
+    images: ["/logo_transparent.png"],
   },
 };
 

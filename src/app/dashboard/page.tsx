@@ -75,8 +75,18 @@ export default function DashboardPage() {
       </motion.section>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* FIRST COLUMN: Profile, Actions & Tasks */}
-        <div className="lg:col-span-3 space-y-8">
+        {/* FIRST COLUMN: Main Centerpieces (Prioritized) */}
+        <div className="lg:col-span-6 space-y-8 order-1">
+           <motion.div variants={item}>
+              <PlannerCard />
+           </motion.div>
+           <motion.div variants={item}>
+              <PerformanceChartsCard />
+           </motion.div>
+        </div>
+
+        {/* SECOND COLUMN: Profile, Actions & Tasks */}
+        <div className="lg:col-span-3 space-y-8 order-2">
            <motion.div variants={item}>
               <DogProfileCard />
            </motion.div>
@@ -88,18 +98,8 @@ export default function DashboardPage() {
            </motion.div>
         </div>
 
-        {/* SECOND COLUMN: Main Centerpieces */}
-        <div className="lg:col-span-6 space-y-8">
-           <motion.div variants={item}>
-              <PlannerCard />
-           </motion.div>
-           <motion.div variants={item}>
-              <PerformanceChartsCard />
-           </motion.div>
-        </div>
-
         {/* THIRD COLUMN: Progress & Achievements */}
-        <div className="lg:col-span-3 space-y-8">
+        <div className="lg:col-span-3 space-y-8 order-3">
            <motion.div variants={item}>
               <ActiveCoursesCard />
            </motion.div>

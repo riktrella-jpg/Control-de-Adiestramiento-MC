@@ -103,7 +103,7 @@ export default function ResetPasswordPage() {
           <div className="flex items-center gap-3">
             <div className="bg-primary/10 p-2 rounded-xl">
               <Image
-                src="/logo.png"
+                src="/logo_transparent.png"
                 alt="MANADA CLUB"
                 width={36}
                 height={36}

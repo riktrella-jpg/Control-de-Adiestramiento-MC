@@ -173,7 +173,7 @@ export default function LoginPage() {
             <div className="flex items-center gap-3 group cursor-pointer" onClick={() => router.push('/')}>
               <div className="bg-white p-2.5 rounded-2xl shadow-2xl border border-slate-100 transition-transform active:scale-90">
                 <Image
-                  src="/logo.png"
+                  src="/logo_transparent.png"
                   alt="MANADA CLUB Logo"
                   width={40}
                   height={40}

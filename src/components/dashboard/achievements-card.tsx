@@ -5,11 +5,25 @@ import { Trophy, Star, Shield, Flame, Activity } from "lucide-react";
 import { motion } from "motion/react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts";
+import { useMemo } from "react";
 
 export function AchievementsCard({ className }: { className?: string }) {
-  const { achievements } = useAppState();
+  const { achievements, modules } = useAppState();
 
-  const completedCount = achievements.filter(a => a.completed).length;
+  // Doble fuente de verdad: usa el máximo entre:
+  // 1. Logros marcados como completed (desde la DB o auto-visual en AppStateProvider)
+  // 2. Módulos que tienen el 100% de sus semanas completadas (medición directa)
+  const completedCount = useMemo(() => {
+    // Solo contar logros que son certificaciones de módulo (para que el /7 tenga sentido)
+    const fromAchievements = achievements.filter(a => a.completed && a.id.startsWith('cert_module')).length;
+    const fromModules = modules.filter(m => {
+      if (!m.weeks.length) return false;
+      const done = m.weeks.filter(w => w.completed).length;
+      return done === m.weeks.length; // Estricto 100%
+    }).length;
+    // Tomar el máximo para no subestimar nunca el nivel real
+    return Math.max(fromAchievements, fromModules);
+  }, [achievements, modules]);
   
   // Dynamic stats based on completed achievements (simulated power levels)
   const powerStats = [
@@ -36,7 +50,10 @@ export function AchievementsCard({ className }: { className?: string }) {
             </CardDescription>
           </div>
           <div className="text-right">
-             <div className="text-2xl font-black text-white">{completedCount}<span className="text-sm text-muted-foreground">/{achievements.length}</span></div>
+             <div className="text-2xl font-black text-white drop-shadow-[0_0_10px_rgba(212,175,55,0.5)]">
+                {completedCount}
+                <span className="text-sm text-muted-foreground ml-1">/ {modules.length}</span>
+             </div>
           </div>
         </div>
       </CardHeader>
@@ -45,8 +62,8 @@ export function AchievementsCard({ className }: { className?: string }) {
         
         {/* Radar Chart Section */}
         <div className="h-[200px] w-full bg-white/[0.02] rounded-2xl border border-white/5 p-2 relative overflow-hidden group">
-           <div className="absolute inset-0 bg-primary/5 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-           <ResponsiveContainer width="100%" height="100%">
+            <div className="absolute inset-0 bg-primary/5 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+            <ResponsiveContainer width="100%" height="100%">
             <RadarChart cx="50%" cy="50%" outerRadius="70%" data={powerStats}>
               <PolarGrid stroke="rgba(255,255,255,0.1)" />
               <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 'bold' }} />
@@ -58,65 +75,82 @@ export function AchievementsCard({ className }: { className?: string }) {
         {/* Achievements List */}
         <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
           <TooltipProvider>
-            {achievements.map((achievement, idx) => (
-              <motion.div 
-                key={achievement.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.1 }}
-              >
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className={cn(
-                      "flex items-center gap-4 p-3 rounded-2xl transition-all duration-500 relative group overflow-hidden border",
-                      achievement.completed 
-                        ? "bg-gradient-to-r from-primary/10 to-transparent border-primary/20 shadow-[0_0_15px_rgba(212,175,55,0.1)] hover:shadow-[0_0_25px_rgba(212,175,55,0.2)]" 
-                        : "bg-black/40 border-white/5 grayscale opacity-60 hover:opacity-100"
-                    )}>
-                      {/* Shine Effect */}
-                      {achievement.completed && (
-                         <div className="absolute top-0 left-[-100%] w-1/2 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 group-hover:animate-shine" />
-                      )}
-                      
+            {achievements.map((achievement, idx) => {
+              const isFoundations = achievement.id === "cert_module1";
+              
+              return (
+                <motion.div 
+                  key={achievement.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                >
+                  <Tooltip>
+                    <TooltipTrigger asChild>
                       <div className={cn(
-                        "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-all duration-500 shadow-inner relative z-10",
-                        achievement.completed ? "bg-primary/20 ring-1 ring-primary/50" : "bg-white/5"
+                        "flex items-center gap-4 p-3 rounded-2xl transition-all duration-500 relative group overflow-hidden border",
+                        achievement.completed 
+                          ? isFoundations 
+                            ? "bg-gradient-to-r from-primary/30 to-primary/5 border-primary shadow-[0_0_20px_rgba(212,175,55,0.3)]"
+                            : "bg-gradient-to-r from-primary/10 to-transparent border-primary/20 shadow-[0_0_15px_rgba(212,175,55,0.1)] hover:shadow-[0_0_25px_rgba(212,175,55,0.2)]" 
+                          : "bg-black/40 border-white/5 grayscale opacity-60 hover:opacity-100"
                       )}>
-                        <achievement.icon className={cn(
-                          "h-6 w-6 transition-all duration-500",
-                          achievement.completed ? "text-primary drop-shadow-[0_0_8px_rgba(212,175,55,0.8)] scale-110" : "text-muted-foreground/50"
-                        )} />
-                      </div>
-                      
-                      <div className="flex-1 min-w-0 relative z-10">
-                        <p className={cn(
-                          "font-black text-[11px] uppercase tracking-widest mb-0.5 transition-colors",
-                          achievement.completed ? "text-white" : "text-muted-foreground"
+                        {/* Shine Effect */}
+                        {achievement.completed && (
+                           <div className="absolute top-0 left-[-100%] w-1/2 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 group-hover:animate-shine" />
+                        )}
+                        
+                        <div className={cn(
+                          "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-all duration-500 shadow-inner relative z-10",
+                          achievement.completed 
+                            ? isFoundations ? "bg-primary text-black" : "bg-primary/20 ring-1 ring-primary/50" 
+                            : "bg-white/5"
                         )}>
-                          {achievement.title}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground leading-tight line-clamp-1 italic">
-                          {achievement.description}
-                        </p>
-                      </div>
+                          <achievement.icon className={cn(
+                            "h-6 w-6 transition-all duration-500",
+                            achievement.completed 
+                              ? isFoundations ? "text-black scale-125" : "text-primary drop-shadow-[0_0_8px_rgba(212,175,55,0.8)] scale-110" 
+                              : "text-muted-foreground/50"
+                          )} />
+                        </div>
+                        
+                        <div className="flex-1 min-w-0 relative z-10">
+                          <p className={cn(
+                            "font-black text-[11px] uppercase tracking-widest mb-0.5 transition-colors",
+                            achievement.completed ? "text-white" : "text-muted-foreground"
+                          )}>
+                            {achievement.title}
+                            {isFoundations && achievement.completed && <span className="ml-2 text-[8px] bg-primary text-black px-1.5 py-0.5 rounded-full animate-pulse">ELITE</span>}
+                          </p>
+                          <p className={cn(
+                            "text-[10px] leading-tight line-clamp-1 italic",
+                            achievement.completed ? "text-primary/70" : "text-muted-foreground"
+                          )}>
+                            {achievement.description}
+                          </p>
+                        </div>
 
-                      {achievement.completed && (
-                        <Star className="h-4 w-4 text-primary fill-primary animate-pulse shadow-[0_0_10px_rgba(212,175,55,1)]" />
-                      )}
-                    </div>
-                  </TooltipTrigger>
-                  {!achievement.completed && (
-                    <TooltipContent className="bg-black/90 backdrop-blur-xl text-white font-bold border border-white/10 shadow-2xl rounded-xl p-3">
-                      <p className="text-[10px] uppercase tracking-widest text-primary mb-1">Misión Bloqueada</p>
-                      <p className="text-xs text-muted-foreground">{achievement.description}</p>
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-              </motion.div>
-            ))}
+                        {achievement.completed && (
+                          <div className="flex items-center gap-1">
+                            <Star className={cn("h-4 w-4 text-primary fill-primary animate-pulse shadow-[0_0_10px_rgba(212,175,55,1)]", isFoundations && "h-5 w-5")} />
+                          </div>
+                        )}
+                      </div>
+                    </TooltipTrigger>
+                    {!achievement.completed && (
+                      <TooltipContent className="bg-black/90 backdrop-blur-xl text-white font-bold border border-white/10 shadow-2xl rounded-xl p-3">
+                        <p className="text-[10px] uppercase tracking-widest text-primary mb-1">Misión Bloqueada</p>
+                        <p className="text-xs text-muted-foreground">{achievement.description}</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </motion.div>
+              );
+            })}
           </TooltipProvider>
         </div>
       </CardContent>
     </Card>
+
   );
 }

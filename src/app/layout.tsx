@@ -8,6 +8,11 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "MANADA CLUB - Entrenamiento Canino",
   description: "Transforma la vida de tu perro con el método MANADA. Entrenamiento de élite y apego seguro.",
+  icons: {
+    icon: "/logo_new.png",
+    shortcut: "/logo_new.png",
+    apple: "/logo_new.png",
+  },
   openGraph: {
     title: "MANADA CLUB - Entrenamiento Canino",
     description: "Plataforma de entrenamiento canino basada en el método MANADA.",
@@ -15,7 +20,7 @@ export const metadata: Metadata = {
     siteName: "MANADA CLUB",
     images: [
       {
-        url: "/logo.png",
+        url: "/logo_new.png",
         width: 800,
         height: 800,
         alt: "MANADA CLUB Logo",
@@ -28,7 +33,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "MANADA CLUB",
     description: "Entrenamiento canino de élite.",
-    images: ["/logo.png"],
+    images: ["/logo_new.png"],
   },
 };
 

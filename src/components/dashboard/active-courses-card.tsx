@@ -5,6 +5,9 @@ import { cn } from "@/lib/utils";
 import { ChevronRight, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 
+import Link from "next/link";
+import Image from "next/image";
+
 export function ActiveCoursesCard({ className }: { className?: string }) {
   const { modules } = useAppState();
 
@@ -54,21 +57,30 @@ export function ActiveCoursesCard({ className }: { className?: string }) {
         <div className="space-y-4">
           {activeCourses.length > 0 ? (
             activeCourses.map((course, idx) => (
-              <motion.div 
-                key={course.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                className="group relative"
-              >
-                <div className="flex items-center gap-4 p-3 rounded-2xl bg-muted/30 border border-transparent hover:border-primary/20 transition-all hover:bg-card hover:shadow-lg active:scale-[0.98] cursor-pointer">
-                  <div className={cn(
-                    "h-12 w-12 rounded-xl flex items-center justify-center text-2xl shadow-inner shrink-0 bg-gradient-to-br",
-                    course.gradient,
-                    "opacity-90 group-hover:opacity-100"
-                  )}>
-                    <span className="drop-shadow-md">{course.icon}</span>
-                  </div>
+              <Link key={course.id} href="/dashboard/courses">
+                <motion.div 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="group relative"
+                >
+                  <div className="flex items-center gap-4 p-3 rounded-2xl bg-muted/30 border border-transparent hover:border-primary/20 transition-all hover:bg-card hover:shadow-lg active:scale-[0.98] cursor-pointer">
+                    <div className={cn(
+                      "h-14 w-14 rounded-xl flex items-center justify-center text-2xl shadow-inner shrink-0 bg-gradient-to-br overflow-hidden relative border border-white/5",
+                      course.gradient,
+                      "opacity-90 group-hover:opacity-100"
+                    )}>
+                      {modules.find(m => m.id === course.id)?.imageUrl ? (
+                        <Image 
+                          src={modules.find(m => m.id === course.id)!.imageUrl!} 
+                          alt={course.title}
+                          fill
+                          className="object-cover sepia-[.6] saturate-[1.8] hue-rotate-[-15deg] contrast-110"
+                        />
+                      ) : (
+                        <span className="drop-shadow-md relative z-10">{course.icon}</span>
+                      )}
+                    </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-2">
                       <div>
@@ -88,6 +100,7 @@ export function ActiveCoursesCard({ className }: { className?: string }) {
                   <ChevronRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary transition-colors" />
                 </div>
               </motion.div>
+              </Link>
             ))
           ) : (
             <div className="text-center py-8 rounded-3xl bg-muted/20 border border-dashed border-primary/10">

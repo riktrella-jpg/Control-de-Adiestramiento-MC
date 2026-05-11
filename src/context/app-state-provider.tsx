@@ -295,9 +295,24 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const achievements = useMemo(() => {
     return initialAchievements.map(ach => {
       const serverAch = dbAchievements.find(fa => fa.achievementId === ach.achievementId);
-      return { ...ach, completed: serverAch?.completed || false };
+      let isCompleted = serverAch?.completed || false;
+
+      // Auto-visual completion: si el logro es una certificación de módulo,
+      // comprobamos el progreso del módulo. Si tiene al menos 1 semana completada
+      // Y el porcentaje de completado es 100%, se desbloquea visualmente.
+      if (!isCompleted && ach.id.startsWith('cert_module')) {
+        const moduleNum = ach.id.replace('cert_module', '');
+        const mod = modules.find(m => m.moduleNumber.toString() === moduleNum);
+        if (mod && mod.weeks.length > 0) {
+          const completedWeeks = mod.weeks.filter(w => w.completed).length;
+          const pct = Math.round((completedWeeks / mod.weeks.length) * 100);
+          if (pct === 100) isCompleted = true;
+        }
+      }
+
+      return { ...ach, completed: isCompleted };
     });
-  }, [dbAchievements]);
+  }, [dbAchievements, modules]);
 
   const totalWeeks = useMemo(() => modules.reduce((acc, m) => acc + m.weeks.length, 0), [modules]);
   const completedWeeks = useMemo(() => modules.reduce((acc, m) => acc + m.weeks.filter(w => w.completed).length, 0), [modules]);

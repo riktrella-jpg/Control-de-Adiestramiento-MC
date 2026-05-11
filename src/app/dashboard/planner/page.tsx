@@ -93,15 +93,8 @@ export default function PlannerHistoryPage() {
   };
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen lg:grid lg:grid-cols-[auto_1fr]">
-        <Sidebar className="hidden border-e bg-card lg:block" collapsible="icon">
-          <SidebarNav />
-        </Sidebar>
-        <div className="flex flex-col">
-          <Header />
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-            <div className="space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-20">
+      <div className="space-y-6">
               <div>
                 <h1 className="text-2xl font-bold tracking-tight">Historial de Planes</h1>
                 <p className="text-muted-foreground">Aquí puedes consultar todas las rutas de aprendizaje que has generado con el Asistente de IA.</p>
@@ -180,9 +173,6 @@ export default function PlannerHistoryPage() {
                  </div>
                )}
             </div>
-          </main>
-        </div>
-      </div>
-    </SidebarProvider>
+    </div>
   );
 }

@@ -40,7 +40,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAppState } from "@/context/app-state-provider";
 import { useRouter } from "next/navigation";
-import Logo from "../../../public/logo.png";
+import Logo from "../../../public/logo_transparent.png";
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -71,11 +71,11 @@ import { createClient } from "@/supabase/client";
 
 const baseLinks = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Inicio" },
-  { href: "/courses", icon: BookOpenCheck, label: "Cursos" },
-  { href: "/ethology", icon: BookOpen, label: "Etología en Manada" },
-  { href: "/progress", icon: BarChart3, label: "Progreso" },
-  { href: "/tasks", icon: ClipboardList, label: "Tareas" },
-  { href: "/planner", icon: WandSparkles, label: "Planificador" },
+  { href: "/dashboard/courses", icon: BookOpenCheck, label: "Cursos" },
+  { href: "/dashboard/ethology", icon: BookOpen, label: "Etología en Manada" },
+  { href: "/dashboard/progress", icon: BarChart3, label: "Progreso" },
+  { href: "/dashboard/tasks", icon: ClipboardList, label: "Tareas" },
+  { href: "/dashboard/planner", icon: WandSparkles, label: "Planificador" },
   { href: "https://www.facebook.com", icon: Users, label: "Comunidad", target: "_blank" },
 ];
 
@@ -158,13 +158,13 @@ export function SidebarNav() {
     <>
       <SidebarHeader className="p-4">
         <div className="flex flex-col items-center gap-2.5 mb-5 pt-1">
-          <div className="relative flex justify-center items-center rounded-xl overflow-hidden shadow-lg" style={{ width: 68, height: 68 }}>
+          <div className="relative flex justify-center items-center" style={{ width: 68, height: 68 }}>
             <Image
               src={Logo}
               alt="MC APP"
               width={68}
               height={68}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(252,196,25,0.3)]"
             />
           </div>
           <span className="text-[11px] font-black tracking-[0.2em] text-white/70 uppercase">MC APP</span>

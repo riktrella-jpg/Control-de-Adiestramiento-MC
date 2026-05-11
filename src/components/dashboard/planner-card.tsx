@@ -436,13 +436,14 @@ export function PlannerCard({ className }: { className?: string }) {
                                                     field.value === opt.label ? "border-primary bg-primary/10" : "border-white/10 bg-black/20 hover:bg-white/5"
                                                 )}
                                             >
-                                                <div className="w-full aspect-square overflow-hidden relative">
+                                                <div className="w-full aspect-square overflow-hidden relative group">
                                                     <Image 
                                                         src={opt.icon} 
                                                         alt={opt.label} 
                                                         fill
-                                                        className="object-cover transition-transform duration-500 group-hover:scale-110" 
+                                                        className="object-cover transition-transform duration-500 group-hover:scale-110 sepia-[.8] saturate-[2.5] hue-rotate-[-25deg] contrast-110 brightness-110" 
                                                     />
+                                                    
                                                     {field.value === opt.label && (
                                                         <div className="absolute inset-0 bg-primary/20 backdrop-blur-[2px] flex items-center justify-center">
                                                             <div className="bg-primary text-black rounded-full p-1 shadow-lg">

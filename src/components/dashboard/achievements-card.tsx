@@ -67,7 +67,7 @@ export function AchievementsCard({ className }: { className?: string }) {
             <RadarChart cx="50%" cy="50%" outerRadius="70%" data={powerStats}>
               <PolarGrid stroke="rgba(255,255,255,0.1)" />
               <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 'bold' }} />
-              <Radar name="Binomio" dataKey="A" stroke="#D4AD6A" strokeWidth={2} fill="#D4AD6A" fillOpacity={0.3} />
+              <Radar name="Binomio" dataKey="A" stroke="#d4af37" strokeWidth={2} fill="#d4af37" fillOpacity={0.3} />
             </RadarChart>
           </ResponsiveContainer>
         </div>
@@ -91,8 +91,8 @@ export function AchievementsCard({ className }: { className?: string }) {
                         "flex items-center gap-4 p-3 rounded-2xl transition-all duration-500 relative group overflow-hidden border",
                         achievement.completed 
                           ? isFoundations 
-                            ? "bg-gradient-to-r from-primary/30 to-primary/5 border-primary shadow-[0_0_20px_rgba(212,173,106,0.3)]"
-                            : "bg-gradient-to-r from-primary/10 to-transparent border-primary/20 shadow-[0_0_15px_rgba(212,173,106,0.1)] hover:shadow-[0_0_25px_rgba(212,173,106,0.2)]" 
+                            ? "bg-gradient-to-r from-primary/30 to-primary/5 border-primary shadow-[0_0_20px_rgba(212,175,55,0.3)]"
+                            : "bg-gradient-to-r from-primary/10 to-transparent border-primary/20 shadow-[0_0_15px_rgba(212,175,55,0.1)] hover:shadow-[0_0_25px_rgba(212,175,55,0.2)]" 
                           : "bg-black/40 border-white/5 grayscale opacity-60 hover:opacity-100"
                       )}>
                         {/* Shine Effect */}
@@ -109,7 +109,7 @@ export function AchievementsCard({ className }: { className?: string }) {
                           <achievement.icon className={cn(
                             "h-6 w-6 transition-all duration-500",
                             achievement.completed 
-                              ? isFoundations ? "text-black scale-125" : "text-primary drop-shadow-[0_0_8px_rgba(212,173,106,0.8)] scale-110" 
+                              ? isFoundations ? "text-black scale-125" : "text-primary drop-shadow-[0_0_8px_rgba(212,175,55,0.8)] scale-110" 
                               : "text-muted-foreground/50"
                           )} />
                         </div>
@@ -132,7 +132,7 @@ export function AchievementsCard({ className }: { className?: string }) {
 
                         {achievement.completed && (
                           <div className="flex items-center gap-1">
-                            <Star className={cn("h-4 w-4 text-primary fill-primary animate-pulse shadow-[0_0_10px_rgba(212,173,106,1)]", isFoundations && "h-5 w-5")} />
+                            <Star className={cn("h-4 w-4 text-primary fill-primary animate-pulse shadow-[0_0_10px_rgba(212,175,55,1)]", isFoundations && "h-5 w-5")} />
                           </div>
                         )}
                       </div>

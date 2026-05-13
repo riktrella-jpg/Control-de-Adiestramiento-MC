@@ -14,6 +14,7 @@ import { useAppState } from "@/context/app-state-provider";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { motion, AnimatePresence } from "motion/react";
 
 interface Article {
   id: string;
@@ -24,6 +25,64 @@ interface Article {
   createdAt: string;
   author_id: string;
 }
+
+const getArticleImage = (title: string) => {
+  const t = title.toLowerCase();
+  // Specific matches first
+  if (t.includes("huella") || t.includes("sangre")) {
+    return "/dog-paw-hero.png";
+  }
+  if (t.includes("neurolog") || t.includes("temblor") || t.includes("petardo")) {
+    return "/dog-neurology-hero.png";
+  }
+  if (t.includes("mitos") || t.includes("castigo")) {
+    return "/dog-myths-hero.png";
+  }
+  if (t.includes("47 hechos") || t.includes("ciencia") || t.includes("cient")) {
+    return "/dog-science-hero.png";
+  }
+  if (t.includes("culpa") || t.includes("educaci")) {
+    return "/dog-education-hero.png";
+  }
+  if (t.includes("reactividad")) {
+    return "/dog-reactivity-hero.png";
+  }
+  if (t.includes("luca") || t.includes("duelo") || t.includes("gratitud")) {
+    return "/dog-luca-hero.png";
+  }
+  if (t.includes("emociones") || t.includes("emocion")) {
+    return "/dog-emotions-hero.png";
+  }
+  if (t.includes("caso") || t.includes("estudio")) {
+    return "/dog-caso-estudio.png";
+  }
+  if (t.includes("masterclass") || t.includes("criticidad")) {
+    return "/dog-masterclass-hero.png";
+  }
+  if (t.includes("introducci") || t.includes("perro esa")) {
+    return "/dog-intro-hero.png";
+  }
+  // Episodios — match specific numbers
+  if (t.includes("episodio 1") || t.includes("ep. 1") || t.includes("ep1")) {
+    return "/dog-episodio-1.png";
+  }
+  if (t.includes("episodio 2") || t.includes("ep. 2") || t.includes("ep2")) {
+    return "/dog-episodio-2.png";
+  }
+  if (t.includes("episodio 3") || t.includes("ep. 3") || t.includes("ep3")) {
+    return "/dog-episodio-3.png";
+  }
+  if (t.includes("episodio 4") || t.includes("ep. 4") || t.includes("ep4")) {
+    return "/dog-episodio-4.png";
+  }
+  if (t.includes("episodio 5") || t.includes("ep. 5") || t.includes("ep5")) {
+    return "/dog-episodio-5.png";
+  }
+  if (t.includes("episodio 6") || t.includes("ep. 6") || t.includes("ep6")) {
+    return "/dog-episodio-6.png";
+  }
+  return "/dog-article-hero.png";
+};
 
 export default function EthologyPage() {
   const { userProfile, user } = useAppState();
@@ -107,100 +166,168 @@ export default function EthologyPage() {
   ) || [];
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-8 max-w-7xl mx-auto pb-20 w-full">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-extrabold tracking-tight flex items-center gap-3">
-            <BookOpen className="h-10 w-10 text-primary" />
-            Etología en Manada
+    <div className="p-4 sm:p-6 lg:p-10 space-y-12 max-w-7xl mx-auto pb-32 w-full">
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-8"
+      >
+        <div className="space-y-2">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 rounded-2xl bg-primary/10 border border-primary/20 shadow-[0_0_20px_rgba(212,175,55,0.1)]">
+              <BookOpen className="h-8 w-8 text-primary" />
+            </div>
+            <Badge variant="outline" className="border-primary/30 text-primary px-3 py-1 uppercase tracking-widest text-[10px] font-black">
+              Biblioteca Técnica
+            </Badge>
+          </div>
+          <h1 className="text-5xl font-black tracking-tighter uppercase text-white leading-none">
+            Etología <span className="text-primary">en Manada</span>
           </h1>
-          <p className="text-muted-foreground mt-2">
-            Explora artículos y recursos técnicos sobre el comportamiento y bienestar canino.
+          <p className="text-muted-foreground text-sm max-w-2xl font-medium tracking-wide">
+            Recursos especializados y artículos técnicos sobre el comportamiento, bienestar y comunicación consciente del binomio canino.
           </p>
         </div>
 
         {isAdmin && (
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Upload className="h-4 w-4" /> Subir Artículo
+              <Button className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-wider shadow-[0_10px_30px_rgba(212,175,55,0.3)] gap-3 transition-all hover:scale-105 active:scale-95 border-none">
+                <Upload className="h-5 w-5" /> Subir Artículo
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Compartir Conocimiento</DialogTitle>
-                <DialogDescription>Sube un archivo HTML para que la manada pueda aprender de él.</DialogDescription>
+            <DialogContent className="bg-zinc-950 border-white/10 text-white max-w-lg rounded-[2.5rem] p-8 shadow-2xl">
+              <DialogHeader className="space-y-4 mb-6">
+                <div className="w-12 h-1 bg-primary rounded-full" />
+                <DialogTitle className="text-3xl font-black uppercase tracking-tighter">Compartir Conocimiento</DialogTitle>
+                <DialogDescription className="text-zinc-400 font-medium italic">
+                  Sube un archivo HTML para expandir la sabiduría técnica de la manada.
+                </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleUpload} className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label>Título del Artículo</Label>
-                  <Input name="title" placeholder="Ej. El lenguaje de las señales de calma" required />
+              <form onSubmit={handleUpload} className="space-y-6">
+                <div className="space-y-3">
+                  <Label className="text-[10px] uppercase tracking-widest font-black text-primary/80">Título del Artículo</Label>
+                  <Input name="title" placeholder="Ej. El lenguaje de las señales de calma" required className="bg-white/5 border-white/10 h-12 rounded-xl focus:ring-primary/50" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Descripción Corta</Label>
-                  <Input name="description" placeholder="Breve resumen de lo que trata." />
+                <div className="space-y-3">
+                  <Label className="text-[10px] uppercase tracking-widest font-black text-primary/80">Descripción Corta</Label>
+                  <Input name="description" placeholder="Breve resumen de lo que trata." className="bg-white/5 border-white/10 h-12 rounded-xl focus:ring-primary/50" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Archivo HTML</Label>
-                  <Input type="file" name="file" accept=".html" required className="cursor-pointer" />
+                <div className="space-y-3">
+                  <Label className="text-[10px] uppercase tracking-widest font-black text-primary/80">Archivo HTML</Label>
+                  <Input type="file" name="file" accept=".html" required className="bg-white/5 border-white/10 h-12 rounded-xl cursor-pointer file:bg-primary/10 file:text-primary file:border-none file:px-4 file:rounded-lg file:mr-4 file:text-[10px] file:font-black file:uppercase" />
                 </div>
-                <Button type="submit" className="w-full" disabled={isUploading}>
-                  {isUploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Publicar Artículo
+                <Button type="submit" className="w-full h-14 rounded-xl bg-white text-black hover:bg-primary font-black uppercase tracking-widest transition-colors" disabled={isUploading}>
+                  {isUploading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <BookOpen className="h-5 w-5 mr-2" />}
+                  Publicar en la Biblioteca
                 </Button>
               </form>
             </DialogContent>
           </Dialog>
         )}
-      </div>
+      </motion.div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="relative group max-w-md mx-auto">
+        <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-transparent rounded-[2rem] blur opacity-25 group-focus-within:opacity-100 transition duration-1000" />
+        <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/40 group-focus-within:text-primary transition-colors" />
         <Input 
-          placeholder="Buscar artículos..." 
-          className="pl-10 h-12 rounded-2xl bg-muted/30 border-none shadow-sm"
+          placeholder="Buscar conocimiento..." 
+          className="pl-14 h-14 rounded-[2rem] bg-black/40 backdrop-blur-md border border-white/5 group-focus-within:border-primary/50 text-white placeholder:text-white/20 transition-all shadow-2xl"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-           {[1,2,3].map(i => <Card key={i} className="h-48 animate-pulse bg-muted" />)}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+           {[1,2,3].map(i => <div key={i} className="h-80 animate-pulse rounded-[2.5rem] bg-white/5 border border-white/5" />)}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredArticles.map(article => (
-            <Card key={article.id} className="group hover:border-primary/50 transition-all border-primary/10 overflow-hidden bg-card flex flex-col">
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-start mb-2">
-                  <Badge variant="secondary" className="bg-primary/5 text-primary text-[10px] uppercase font-bold">Artículo Técnico</Badge>
-                  <FileCode className="h-5 w-5 text-primary opacity-40" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <AnimatePresence mode="popLayout">
+            {filteredArticles.map((article, idx) => (
+              <motion.div
+                key={article.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ delay: idx * 0.1, duration: 0.5, ease: "easeOut" }}
+                className="group relative cursor-pointer rounded-[2.5rem] overflow-hidden h-80 flex flex-col justify-between border border-white/5 shadow-2xl"
+                style={{ isolation: "isolate" }}
+                onClick={() => setSelectedArticle(article)}
+              >
+                {/* ── Background image ── */}
+                <div
+                  className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 ease-out group-hover:scale-110"
+                  style={{ backgroundImage: `url('${getArticleImage(article.title)}')` }}
+                />
+                
+                {/* ── Overlays ── */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-transparent to-transparent" />
+                
+                {/* ── Interactive Glow ── */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
+                  style={{ background: "radial-gradient(circle at center, rgba(212,175,55,0.1) 0%, transparent 70%)" }}
+                />
+
+                {/* ── TOP: Category & Admin ── */}
+                <div className="relative z-10 flex items-start justify-between p-7">
+                  <div className="flex items-center gap-3">
+                    <div className="w-1.5 h-6 rounded-full bg-primary shadow-[0_0_10px_rgba(212,175,55,0.8)]" />
+                    <span className="text-[11px] font-black uppercase tracking-[0.25em] text-white/90 drop-shadow-md">
+                      Artículo Técnico
+                    </span>
+                  </div>
+                  {isAdmin && (
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="opacity-0 group-hover:opacity-100 transition-all duration-300 p-2.5 rounded-2xl bg-black/60 backdrop-blur-md text-white/40 hover:text-red-400 border border-white/10"
+                      onClick={(e) => { e.stopPropagation(); handleDelete(article); }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </motion.button>
+                  )}
                 </div>
-                <CardTitle className="text-lg leading-tight">{article.title}</CardTitle>
-                <CardDescription className="line-clamp-2 text-xs mt-1">{article.description || "Sin descripción proporcionada."}</CardDescription>
-              </CardHeader>
-              <CardContent className="flex-1">
-                <p className="text-[10px] text-muted-foreground italic">
-                  Publicado el: {article.createdAt ? format(new Date(article.createdAt), "d 'de' MMMM", { locale: es }) : "Hoy"}
-                </p>
-              </CardContent>
-              <CardFooter className="flex gap-2 pt-0">
-                <Button 
-                  variant="outline" 
-                  className="w-full text-xs font-bold gap-2"
-                  onClick={() => setSelectedArticle(article)}
-                >
-                  <Eye className="h-4 w-4" /> Leer Ahora
-                </Button>
-                {isAdmin && (
-                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => handleDelete(article)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </CardFooter>
-            </Card>
-          ))}
+
+                {/* ── BOTTOM: Content ── */}
+                <div className="relative z-10 p-7 space-y-4">
+                  <div>
+                    <h2 className="text-3xl font-black uppercase leading-[0.9] tracking-tighter text-white drop-shadow-2xl mb-2">
+                      {article.title}
+                    </h2>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-primary/80 mb-3 flex items-center gap-2">
+                      <span className="w-4 h-[1px] bg-primary/40" />
+                      {article.description || "Conocimiento que transforma"}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-2">
+                      <div className="p-1.5 rounded-lg bg-primary/20">
+                        <FileCode className="h-4 w-4 text-primary" />
+                      </div>
+                      <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">
+                        {article.createdAt ? format(new Date(article.createdAt), "d 'de' MMMM", { locale: es }) : "Hoy"}
+                      </span>
+                    </div>
+
+                    {/* CTA Overlay */}
+                    <div className="flex items-center gap-2 rounded-2xl px-5 py-2.5 bg-primary text-black
+                                    opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0
+                                    transition-all duration-500 shadow-[0_10px_30px_rgba(212,175,55,0.4)] font-black uppercase text-[11px] tracking-wider">
+                      <Eye className="h-4 w-4" />
+                      Leer Ahora
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Border Shine ── */}
+                <div className="absolute inset-0 border border-white/0 group-hover:border-primary/20 rounded-[2.5rem] transition-colors duration-500 pointer-events-none" />
+              </motion.div>
+            ))}
+          </AnimatePresence>
 
           {filteredArticles.length === 0 && (
             <div className="col-span-full py-20 text-center border-2 border-dashed rounded-3xl bg-muted/10">
@@ -213,12 +340,18 @@ export default function EthologyPage() {
       )}
 
       <Dialog open={!!selectedArticle} onOpenChange={() => setSelectedArticle(null)}>
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden bg-white dark:bg-zinc-950">
-          <DialogHeader className="p-6 border-b shrink-0 bg-background">
-            <DialogTitle className="text-2xl font-bold text-primary">{selectedArticle?.title}</DialogTitle>
-            <DialogDescription>{selectedArticle?.description}</DialogDescription>
+        <DialogContent className="max-w-6xl h-[95vh] flex flex-col p-0 overflow-hidden bg-black border-white/10 shadow-[0_0_50px_rgba(0,0,0,1)]">
+          <DialogHeader className="p-8 border-b border-white/5 shrink-0 bg-black/40 backdrop-blur-2xl relative">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
+            <div className="flex items-center gap-4 mb-2">
+              <div className="w-2 h-8 rounded-full bg-primary" />
+              <DialogTitle className="text-3xl font-black uppercase tracking-tighter text-white">{selectedArticle?.title}</DialogTitle>
+            </div>
+            <DialogDescription className="text-primary/60 font-bold uppercase tracking-widest text-[10px]">
+              {selectedArticle?.description || "Documentación Técnica del Sistema"}
+            </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 bg-white relative overflow-hidden">
+          <div className="flex-1 bg-white relative overflow-hidden m-4 rounded-[2rem] shadow-inner">
             {selectedArticle && (
               <ArticleRenderer url={selectedArticle.url} title={selectedArticle.title} />
             )}

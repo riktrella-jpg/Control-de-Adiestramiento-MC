@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npx next dev -H 0.0.0.0 --turbopack",
+    "dev": "npx next dev -p 3001 -H 0.0.0.0 --turbopack",
     "build": "npx next build",
     "start": "npx next start",
     "lint": "npx next lint",

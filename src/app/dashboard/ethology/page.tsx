@@ -32,6 +32,9 @@ const getArticleImage = (title: string) => {
   if (t.includes("huella") || t.includes("sangre")) {
     return "/dog-paw-hero.png";
   }
+  if (t.includes("baile") || t.includes("excitaci")) {
+    return "/dog-excitacion-hero.png";
+  }
   if (t.includes("neurolog") || t.includes("temblor") || t.includes("petardo")) {
     return "/dog-neurology-hero.png";
   }

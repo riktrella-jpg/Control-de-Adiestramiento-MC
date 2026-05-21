@@ -413,7 +413,7 @@ export function PlannerCard({ className }: { className?: string }) {
                             name="mainProblem"
                             render={({ field }) => (
                                 <FormItem>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
                                         {[
                                             { id: 'Bark', label: 'Ladridos', icon: '/focus/barking.png' },
                                             { id: 'Leash', label: 'Tira Correa', icon: '/focus/leash.png' },
@@ -452,7 +452,7 @@ export function PlannerCard({ className }: { className?: string }) {
                                                         </div>
                                                     )}
                                                 </div>
-                                                <span className="text-[10px] font-black uppercase tracking-tighter text-center pb-3 px-2 line-clamp-1">{opt.label}</span>
+                                                <span className="text-[9px] font-bold uppercase tracking-tighter text-center pb-2 px-1 line-clamp-1">{opt.label}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -620,3 +620,4 @@ export function PlannerCard({ className }: { className?: string }) {
 }
 
     
+

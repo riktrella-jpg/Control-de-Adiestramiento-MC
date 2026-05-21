@@ -4,15 +4,7 @@ import { useState, useEffect } from "react";
 import { useAppState } from "@/context/app-state-provider";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CheckCircle, Award, Lightbulb, Loader2 } from "lucide-react";
-import dynamic from "next/dynamic";
-
-// Dynamic import for Recharts to avoid SSR issues
-const PieChart = dynamic(() => import('recharts').then(mod => mod.PieChart), { ssr: false });
-const Pie = dynamic(() => import('recharts').then(mod => mod.Pie), { ssr: false });
-const Cell = dynamic(() => import('recharts').then(mod => mod.Cell), { ssr: false });
-const Tooltip = dynamic(() => import('recharts').then(mod => mod.Tooltip), { ssr: false });
-const ResponsiveContainer = dynamic(() => import('recharts').then(mod => mod.ResponsiveContainer), { ssr: false });
-const Legend = dynamic(() => import('recharts').then(mod => mod.Legend), { ssr: false });
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 const trainingTips = [
     { icon: Lightbulb, tip: "¡La constancia es clave! Practica en sesiones cortas y frecuentes de 5-10 minutos." },
@@ -123,3 +115,4 @@ export default function ProgressPage() {
         </div>
     );
 }
+

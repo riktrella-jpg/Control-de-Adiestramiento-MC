@@ -323,7 +323,7 @@ export default function TasksPage() {
                                   <Avatar className="h-8 w-8"><AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${u.feedback_detail.evaluatorName || "trainer"}`} /><AvatarFallback>RE</AvatarFallback></Avatar>
                                   <div><p className="text-xs font-bold">{u.feedback_detail.evaluatorName || "Especialista"}</p><p className="text-[9px] font-black uppercase text-primary/70">{u.feedback_detail.evaluatorRole || "Tutor"}</p></div>
                                 </div>
-                                {u.feedback_detail.comments && <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-sm italic font-bold relative"><Quote className="h-5 w-5 text-primary/20 absolute -top-2 -left-1" />"{u.feedback_detail.comments}"</div>}
+                                {u.feedback_detail.comments && <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-sm italic font-bold relative"><Quote className="h-5 w-5 text-primary/20 absolute -top-2 -left-1" />&quot;{u.feedback_detail.comments}&quot;</div>}
                                 <div className="grid grid-cols-5 gap-2">
                                   {[
                                     { l: "OBED", v: u.feedback_detail.obediencia, i: <Shield className="h-3 w-3" /> }, 
@@ -361,3 +361,4 @@ export default function TasksPage() {
     </div>
   );
 }
+

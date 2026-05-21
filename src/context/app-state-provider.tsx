@@ -324,14 +324,14 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     
     const checkAndUnlock = async () => {
       let changed = false;
-      for (const module of modules) {
-        const isModuleComplete = module.weeks.every(w => w.completed);
+      for (const mod of modules) {
+        const isModuleComplete = mod.weeks.every(w => w.completed);
         if (isModuleComplete) {
-          const achId = `cert_${module.id}`;
+          const achId = `cert_${mod.id}`;
           const alreadyUnlocked = dbAchievements.some(a => a.achievementId === achId && a.completed);
           
           if (!alreadyUnlocked) {
-            console.log(`Auto-unlocking achievement for ${module.id}`);
+            console.log(`Auto-unlocking achievement for ${mod.id}`);
             const { error } = await supabase.from('achievements').upsert({
               user_id: user.id,
               pet_id: selectedPet.id,
@@ -559,3 +559,4 @@ export const useAppState = () => {
     }
     return context;
 };
+

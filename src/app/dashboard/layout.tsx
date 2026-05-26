@@ -6,6 +6,8 @@ import { Sidebar, SidebarProvider } from "@/components/ui/sidebar";
 import { Header } from "@/components/dashboard/header";
 import { BackgroundEffects } from "@/components/ui/background-effects";
 
+import { ChatWidget } from "@/components/chat/chat-widget";
+
 const SidebarNav = dynamic(() => import("@/components/dashboard/sidebar-nav").then(mod => mod.SidebarNav), { ssr: false });
 
 export default function DashboardLayout({
@@ -33,6 +35,7 @@ export default function DashboardLayout({
             {children}
           </main>
         </div>
+        <ChatWidget />
       </div>
     </SidebarProvider>
   );

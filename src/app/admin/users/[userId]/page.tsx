@@ -21,6 +21,7 @@ import { createClient } from "@/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { AdminChatPanel } from "@/components/chat/admin-chat-panel";
 
 interface Task {
   id: string;
@@ -221,14 +222,25 @@ export default function AdminUserPage() {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12">
-      <div className="flex items-center gap-4">
-        <Link href="/admin" className="p-2 hover:bg-muted rounded-full transition-colors">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Centro de Control: {userProfile.displayName}</h2>
-          <p className="text-muted-foreground">Supervisión técnica y retroalimentación profesional.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link href="/admin" className="p-2 hover:bg-muted rounded-full transition-colors">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Centro de Control: {userProfile.displayName}</h2>
+            <p className="text-muted-foreground">Supervisión técnica y retroalimentación profesional.</p>
+          </div>
         </div>
+        
+        {userProfile.email && (
+          <Button asChild variant="outline" className="border-primary/20 hover:bg-primary/10 transition-colors">
+            <a href={`mailto:${userProfile.email}?subject=Mensaje de MC APP`}>
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Mandar Mensaje
+            </a>
+          </Button>
+        )}
       </div>
 
       {/* Stats Header */}
@@ -352,6 +364,8 @@ export default function AdminUserPage() {
               )) || <p className="text-xs text-muted-foreground p-4 text-center">No hay tareas asignadas aún.</p>}
             </CardContent>
           </Card>
+
+          <AdminChatPanel userId={userId} userName={userProfile.displayName || "Usuario"} />
         </div>
 
         {/* Right Column: Video Review Center */}

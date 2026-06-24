@@ -75,7 +75,7 @@ export const coursesData: Module[] = [
                 alternatives: "Si no hay clicker, usar palabra corta (“sí”) con tono alegre.", 
                 exercises: "Uso del clicker/marcador para recompensar la atención voluntaria.",
                 completed: false, 
-                videoUrl: "https://player.vimeo.com/video/1189192604?title=0&byline=0&portrait=0&badge=0&autopause=0&player_id=0&app_id=58479" 
+                videoUrl: "https://vimeo.com/1204074131?share=copy&fl=sv&fe=ci" 
             },
             { 
                 id: "m1w3", 

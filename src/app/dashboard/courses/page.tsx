@@ -57,6 +57,8 @@ function TaskCheckbox({
   );
 }
 
+
+
 // --- Componente Principal ---
 export default function CoursesPage() {
   const { modules, user, selectedPet, toggleWeekCompletion } = useAppState();
@@ -357,10 +359,17 @@ export default function CoursesPage() {
                                       )}
                                       
                                       {week.videoUrl && (
-                                        <a href={week.videoUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors py-2">
-                                          <PlayCircle className="h-4 w-4" />
-                                          Ver Video de Soporte
-                                        </a>
+                                        <div className="mt-4">
+                                          <a 
+                                            href={week.videoUrl} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer" 
+                                            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 text-white/90 hover:text-white hover:bg-white/5 hover:border-white/30 transition-all text-xs font-bold w-fit"
+                                          >
+                                            <PlayCircle className="h-4 w-4 text-emerald-400" />
+                                            Ver Video de Soporte
+                                          </a>
+                                        </div>
                                       )}
                                     </div>
 

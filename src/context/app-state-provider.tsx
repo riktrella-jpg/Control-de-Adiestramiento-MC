@@ -20,6 +20,12 @@ interface Pet {
   breed?: string;
   level?: string;
   created_at?: string;
+  birth_date?: string;
+  deworming_date?: string;
+  vaccine_date?: string;
+  particularities?: string;
+  deleted_at?: string;
+  is_sterilized?: boolean;
 }
 
 interface Task {
@@ -76,6 +82,9 @@ export interface UserProfile {
   dogPhotoURL?: string;
   filesUploaded?: number;
   role?: 'admin' | 'user' | 'client';
+  onboarding_completed?: boolean;
+  tour_completed?: boolean;
+  comorbidities?: string[];
 }
 
 const initialAchievements: Achievement[] = [
@@ -96,10 +105,12 @@ interface AppState {
   uploads: Upload[];
   achievements: Achievement[];
   pets: Pet[];
+  deletedPets: Pet[];
   selectedPet: Pet | null;
   user: User | null;
   userProfile: UserProfile | null;
   isAdmin: boolean;
+  isNewUser: boolean;
   addPetOpen: boolean;
   setAddPetOpen: (open: boolean) => void;
   selectPet: (petId: string) => void;
@@ -113,6 +124,12 @@ interface AppState {
   deleteVideo: (uploadId: string) => Promise<void>;
   refetchUploads: () => Promise<void>;
   deletePet: (petId: string) => Promise<void>;
+  restorePet: (petId: string) => Promise<void>;
+  hardDeletePet: (petId: string) => Promise<void>;
+  updateCarnetInfo: (petId: string, carnetData: Partial<Pet>) => Promise<void>;
+  markOnboardingComplete: () => Promise<void>;
+  markTourComplete: () => Promise<void>;
+  updateUserProfile: (data: Partial<UserProfile>) => Promise<void>;
 }
 
 const AppStateContext = createContext<AppState | undefined>(undefined);
@@ -143,7 +160,8 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     [{ column: 'user_id', operator: 'eq', value: user?.id }]
   );
 
-  const pets = useMemo(() => petsRaw || [], [petsRaw]);
+  const pets = useMemo(() => (petsRaw || []).filter(p => !p.deleted_at), [petsRaw]);
+  const deletedPets = useMemo(() => (petsRaw || []).filter(p => !!p.deleted_at), [petsRaw]);
 
   const selectedPet = useMemo(() => {
     if (!selectedPetId) return pets[0] || null;
@@ -202,7 +220,10 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
                     id: user.id, email: user.email, 
                     displayName: user.user_metadata?.full_name || user.email?.split('@')[0],
                     dogName: user.user_metadata?.dog_name || 'Haku',
-                    role: 'client'
+                    role: 'client',
+                    onboarding_completed: false,
+                    tour_completed: false,
+                    comorbidities: []
                 });
                 refetchUserProfile();
             }
@@ -375,7 +396,8 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const deletePet = useCallback(async (petId: string) => {
     if (!user) return;
     try {
-      const { error } = await supabase.from('pets').delete().eq('id', petId);
+      // Soft delete: solo actualizamos el deleted_at
+      const { error } = await supabase.from('pets').update({ deleted_at: new Date().toISOString() }).eq('id', petId);
       if (error) throw error;
       await refetchPets();
       if (selectedPet?.id === petId) {
@@ -387,6 +409,30 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
       throw error;
     }
   }, [user, selectedPet, supabase, refetchPets]);
+
+  const restorePet = useCallback(async (petId: string) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase.from('pets').update({ deleted_at: null }).eq('id', petId);
+      if (error) throw error;
+      await refetchPets();
+    } catch (error: any) {
+      await logError("restorePet", error);
+      throw error;
+    }
+  }, [user, supabase, refetchPets]);
+
+  const hardDeletePet = useCallback(async (petId: string) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase.from('pets').delete().eq('id', petId);
+      if (error) throw error;
+      await refetchPets();
+    } catch (error: any) {
+      await logError("hardDeletePet", error);
+      throw error;
+    }
+  }, [user, supabase, refetchPets]);
 
   const toggleWeekCompletion = useCallback(async (moduleId: string, weekId: string, dryRun = false, forceComplete?: boolean) => {
     if (!user || !selectedPet) return { isLocked: true, message: "No pet selected" };
@@ -540,12 +586,52 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     await refetchPets();
   }, [user, selectedPet, supabase, refetchPets]);
 
+  const updateCarnetInfo = useCallback(async (petId: string, carnetData: Partial<Pet>) => {
+    if (!user) throw new Error("No autenticado");
+    const { error } = await supabase.from('pets').update(carnetData).eq('id', petId);
+    if (error) throw new Error("No se pudo actualizar el carnet: " + error.message);
+    await refetchPets();
+  }, [user, supabase, refetchPets]);
+
+  const markOnboardingComplete = useCallback(async () => {
+    if (!user) return;
+    await supabase.from('users').update({ onboarding_completed: true }).eq('id', user.id);
+    await refetchUserProfile();
+  }, [user, supabase, refetchUserProfile]);
+
+  const markTourComplete = useCallback(async () => {
+    if (!user) return;
+    await supabase.from('users').update({ tour_completed: true }).eq('id', user.id);
+    await refetchUserProfile();
+  }, [user, supabase, refetchUserProfile]);
+
+  const updateUserProfile = useCallback(async (data: Partial<UserProfile>) => {
+    if (!user) return;
+    await supabase.from('users').update(data).eq('id', user.id);
+    await refetchUserProfile();
+  }, [user, supabase, refetchUserProfile]);
+
+  const isNewUser = useMemo(() => {
+    if (!userProfile) return false;
+    return userProfile.onboarding_completed === false;
+  }, [userProfile]);
+
+  // ROBUST GLOBAL REDIRECT
+  useEffect(() => {
+    if (isMounted && user && !isUserLoading && userProfile) {
+      const isCurrentlyOnboarding = window.location.pathname.includes('/onboarding');
+      if (isNewUser && !isCurrentlyOnboarding) {
+        window.location.href = '/onboarding';
+      }
+    }
+  }, [isMounted, user, isUserLoading, userProfile, isNewUser]);
+
   const value = useMemo(() => ({
-    progress, modules, tasks, isTasksLoading, uploads, achievements, pets, selectedPet, user, userProfile, isAdmin,
+    progress, modules, tasks, isTasksLoading, uploads, achievements, pets, deletedPets, selectedPet, user, userProfile, isAdmin, isNewUser,
     addPetOpen, setAddPetOpen,
-    selectPet, addPet, deletePet, toggleWeekCompletion, toggleTaskCompletion, addTask, toggleAchievementCompletion,
-    updateDogPhoto, uploadVideo, deleteVideo, refetchUploads
-  }), [progress, modules, tasks, isTasksLoading, uploads, achievements, pets, selectedPet, user, userProfile, isAdmin, addPetOpen, selectPet, addPet, deletePet, toggleWeekCompletion, toggleTaskCompletion, addTask, toggleAchievementCompletion, updateDogPhoto, uploadVideo, deleteVideo, refetchUploads]);
+    selectPet, addPet, deletePet, restorePet, hardDeletePet, toggleWeekCompletion, toggleTaskCompletion, addTask, toggleAchievementCompletion,
+    updateDogPhoto, uploadVideo, deleteVideo, refetchUploads, updateCarnetInfo, markOnboardingComplete, markTourComplete, updateUserProfile
+  }), [progress, modules, tasks, isTasksLoading, uploads, achievements, pets, deletedPets, selectedPet, user, userProfile, isAdmin, isNewUser, addPetOpen, selectPet, addPet, deletePet, restorePet, hardDeletePet, toggleWeekCompletion, toggleTaskCompletion, addTask, toggleAchievementCompletion, updateDogPhoto, uploadVideo, deleteVideo, refetchUploads, updateCarnetInfo, markOnboardingComplete, markTourComplete, updateUserProfile]);
 
   if (!isMounted || isUserLoading) return <div className="flex h-screen items-center justify-center bg-black"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
 

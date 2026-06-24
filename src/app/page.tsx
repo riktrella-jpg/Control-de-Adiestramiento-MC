@@ -2,21 +2,24 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/hooks/use-user';
+import { useAppState } from '@/context/app-state-provider';
 
 export default function HomeRedirect() {
-  const { user, loading } = useUser();
+  const { user, isNewUser } = useAppState();
   const router = useRouter();
 
   useEffect(() => {
-    if (loading) return;
-
+    // If we're rendering, useAppState already ensures user is loaded
     if (user) {
-      router.replace('/dashboard');
+      if (isNewUser) {
+        router.replace('/onboarding');
+      } else {
+        router.replace('/dashboard');
+      }
     } else {
       router.replace('/login');
     }
-  }, [user, loading, router]);
+  }, [user, isNewUser, router]);
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-background">

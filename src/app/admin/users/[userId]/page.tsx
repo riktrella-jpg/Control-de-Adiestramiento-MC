@@ -74,17 +74,28 @@ export default function AdminUserPage() {
 
   const handleAssignTask = async (label: string) => {
     try {
-      const { error } = await supabase.from('tasks').insert({
-        user_id: userId,
-        label,
-        done: false,
-        createdAt: new Date().toISOString()
+      const response = await fetch('/api/assign-task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          label,
+          clientEmail: userProfile?.email,
+          clientName: userProfile?.displayName || 'alumno',
+        }),
       });
-      if (error) throw error;
-      toast({ title: "Tarea asignada" });
-      // Invalidate collections is handled by real-time hopefully, but we can force it
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Error al asignar tarea');
+
+      toast({ title: '✅ Tarea asignada', description: `Se notificó a ${userProfile?.displayName} por correo.` });
+      
+      // Clear the input
+      const input = document.getElementById('new-task-label') as HTMLInputElement;
+      if (input) input.value = '';
+
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
+      toast({ variant: 'destructive', title: 'Error', description: error.message });
     }
   };
 
@@ -301,20 +312,6 @@ export default function AdminUserPage() {
                   <p className="text-xs text-muted-foreground">{userProfile.displayName}</p>
                 </div>
               </div>
-              <div className="pt-2 space-y-3">
-                <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Progreso por Módulo</p>
-                {moduleProgress && moduleProgress.length > 0 ? (
-                  moduleProgress.map((prog: any) => (
-                    <div key={prog.moduleId} className="space-y-1">
-                      <div className="flex justify-between text-[10px] items-center">
-                        <span className="font-medium">{prog.moduleId}</span>
-                        <span>{prog.completedWeekIds?.length || 0}/4</span>
-                      </div>
-                      <Progress value={((prog.completedWeekIds?.length || 0) / 4) * 100} className="h-1" />
-                    </div>
-                  ))
-                ) : <p className="text-xs text-muted-foreground">Sin progreso registrado.</p>}
-              </div>
             </CardContent>
           </Card>
 
@@ -429,43 +426,58 @@ export default function AdminUserPage() {
                             </div>
 
                             {/* Professional Metrics Sliders - 5 Pillars */}
-                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
-                              <div className="space-y-1">
-                                <Label className="text-[9px] font-black uppercase tracking-tighter text-primary/70">Obediencia {obedienciaMap[upload.id] ?? upload.feedback_detail?.obediencia ?? 80}%</Label>
+                            <div className="flex flex-col gap-4 p-4 bg-white/5 rounded-xl border border-white/10">
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                  <Label className="text-[11px] font-black uppercase tracking-tighter text-primary/70">Obediencia</Label>
+                                  <span className="text-[11px] font-bold text-primary">{obedienciaMap[upload.id] ?? upload.feedback_detail?.obediencia ?? 80}%</span>
+                                </div>
                                 <input 
-                                  type="range" className="w-full accent-primary h-1" min="0" max="100" 
+                                  type="range" className="w-full accent-primary h-2" min="0" max="100" 
                                   value={obedienciaMap[upload.id] ?? upload.feedback_detail?.obediencia ?? 80}
                                   onChange={(e) => setObedienciaMap(prev => ({ ...prev, [upload.id]: parseInt(e.target.value) }))}
                                 />
                               </div>
-                              <div className="space-y-1">
-                                <Label className="text-[9px] font-black uppercase tracking-tighter text-primary/70">Vínculo {vinculoMap[upload.id] ?? upload.feedback_detail?.vinculo ?? 80}%</Label>
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                  <Label className="text-[11px] font-black uppercase tracking-tighter text-primary/70">Vínculo</Label>
+                                  <span className="text-[11px] font-bold text-primary">{vinculoMap[upload.id] ?? upload.feedback_detail?.vinculo ?? 80}%</span>
+                                </div>
                                 <input 
-                                  type="range" className="w-full accent-primary h-1" min="0" max="100" 
+                                  type="range" className="w-full accent-primary h-2" min="0" max="100" 
                                   value={vinculoMap[upload.id] ?? upload.feedback_detail?.vinculo ?? 80}
                                   onChange={(e) => setVinculoMap(prev => ({ ...prev, [upload.id]: parseInt(e.target.value) }))}
                                 />
                               </div>
-                              <div className="space-y-1">
-                                <Label className="text-[9px] font-black uppercase tracking-tighter text-primary/70">Foco {focoMap[upload.id] ?? upload.feedback_detail?.foco ?? 80}%</Label>
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                  <Label className="text-[11px] font-black uppercase tracking-tighter text-primary/70">Foco</Label>
+                                  <span className="text-[11px] font-bold text-primary">{focoMap[upload.id] ?? upload.feedback_detail?.foco ?? 80}%</span>
+                                </div>
                                 <input 
-                                  type="range" className="w-full accent-primary h-1" min="0" max="100" 
+                                  type="range" className="w-full accent-primary h-2" min="0" max="100" 
                                   value={focoMap[upload.id] ?? upload.feedback_detail?.foco ?? 80}
                                   onChange={(e) => setFocoMap(prev => ({ ...prev, [upload.id]: parseInt(e.target.value) }))}
                                 />
                               </div>
-                              <div className="space-y-1">
-                                <Label className="text-[9px] font-black uppercase tracking-tighter text-primary/70">Control {controlMap[upload.id] ?? upload.feedback_detail?.control ?? 80}%</Label>
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                  <Label className="text-[11px] font-black uppercase tracking-tighter text-primary/70">Control</Label>
+                                  <span className="text-[11px] font-bold text-primary">{controlMap[upload.id] ?? upload.feedback_detail?.control ?? 80}%</span>
+                                </div>
                                 <input 
-                                  type="range" className="w-full accent-primary h-1" min="0" max="100" 
+                                  type="range" className="w-full accent-primary h-2" min="0" max="100" 
                                   value={controlMap[upload.id] ?? upload.feedback_detail?.control ?? 80}
                                   onChange={(e) => setControlMap(prev => ({ ...prev, [upload.id]: parseInt(e.target.value) }))}
                                 />
                               </div>
-                              <div className="space-y-1 col-span-2 md:col-span-1">
-                                <Label className="text-[9px] font-black uppercase tracking-tighter text-primary/70">Calma {calmaMap[upload.id] ?? upload.feedback_detail?.calma ?? 80}%</Label>
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                  <Label className="text-[11px] font-black uppercase tracking-tighter text-primary/70">Calma</Label>
+                                  <span className="text-[11px] font-bold text-primary">{calmaMap[upload.id] ?? upload.feedback_detail?.calma ?? 80}%</span>
+                                </div>
                                 <input 
-                                  type="range" className="w-full accent-primary h-1" min="0" max="100" 
+                                  type="range" className="w-full accent-primary h-2" min="0" max="100" 
                                   value={calmaMap[upload.id] ?? upload.feedback_detail?.calma ?? 80}
                                   onChange={(e) => setCalmaMap(prev => ({ ...prev, [upload.id]: parseInt(e.target.value) }))}
                                 />
@@ -520,10 +532,10 @@ export default function AdminUserPage() {
                                     </Button>
                                 </div>
                             </div>
-                          </div>
+                           </div>
 
-                          <div className="flex items-center justify-between gap-4 pt-4 border-t border-white/5">
-                            <div className="flex gap-2 items-center">
+                           <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-3 p-4 bg-background/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl mt-4">
+                             <div className="flex gap-2 items-center flex-1">
                               <Button 
                                 size="sm" 
                                 variant="outline" 
@@ -551,16 +563,16 @@ export default function AdminUserPage() {
                               </Button>
                             </div>
 
-                            <Button 
-                              size="sm" 
-                              className="h-10 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 transition-all active:scale-95 group shrink-0"
-                              disabled={isSaving[upload.id]}
-                              onClick={() => handleSaveFeedback(upload.id)}
-                            >
-                              {isSaving[upload.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 group-hover:rotate-12 transition-transform" />}
-                              <span className="hidden sm:inline ml-2">Guardar Feedback</span>
-                            </Button>
-                          </div>
+                             <Button 
+                               size="sm" 
+                               className="h-10 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 transition-all active:scale-95 group shrink-0 w-full sm:w-auto"
+                               disabled={isSaving[upload.id]}
+                               onClick={() => handleSaveFeedback(upload.id)}
+                             >
+                               {isSaving[upload.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 group-hover:rotate-12 transition-transform" />}
+                               <span className="ml-2">Guardar Feedback</span>
+                             </Button>
+                           </div>
                         </div>
                       </div>
                   </div>

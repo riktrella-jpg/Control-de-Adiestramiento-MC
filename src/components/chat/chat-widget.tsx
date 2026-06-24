@@ -71,7 +71,7 @@ export function ChatWidget() {
       {/* Floating Button */}
       <Button
         size="icon"
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 z-50 hover:scale-105"
+        className="fixed top-1/2 right-4 -translate-y-1/2 h-14 w-14 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 z-50 hover:scale-105"
         onClick={() => setIsOpen(!isOpen)}
       >
         {isOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
@@ -84,41 +84,48 @@ export function ChatWidget() {
 
       {/* Chat Window */}
       {isOpen && (
-        <Card className="fixed bottom-24 right-6 w-80 sm:w-96 shadow-2xl z-50 flex flex-col overflow-hidden border-primary/20 h-[500px] max-h-[calc(100vh-120px)] animate-in slide-in-from-bottom-5">
-          <CardHeader className="bg-primary/10 border-b p-4 pb-4">
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <MessageCircle className="h-4 w-4 text-primary" />
-              Chat con el Entrenador
+        <Card className="fixed top-1/2 right-20 -translate-y-1/2 w-80 sm:w-96 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 flex flex-col overflow-hidden border-white/10 h-[500px] max-h-[calc(100vh-40px)] animate-in slide-in-from-right-8 fade-in duration-300 bg-black/60 backdrop-blur-xl">
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-transparent opacity-50 pointer-events-none" />
+          
+          <CardHeader className="bg-white/5 border-b border-white/10 p-4 pb-4 relative z-10 backdrop-blur-md">
+            <CardTitle className="text-sm font-black flex items-center gap-2 uppercase tracking-widest text-white/90">
+              <MessageCircle className="h-4 w-4 text-primary animate-pulse" />
+              Entrenador
             </CardTitle>
           </CardHeader>
           
-          <CardContent className="flex-1 p-4 flex flex-col overflow-hidden bg-background">
-            <div className="flex-1 overflow-y-auto space-y-4 pr-2" ref={scrollRef}>
+          <CardContent className="flex-1 p-0 flex flex-col overflow-hidden relative z-10">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent" ref={scrollRef}>
               {isLoading ? (
                 <div className="flex justify-center items-center h-full">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <Loader2 className="h-8 w-8 animate-spin text-primary/50" />
                 </div>
               ) : messages.length === 0 ? (
-                <div className="flex flex-col justify-center items-center h-full text-center space-y-2 opacity-50">
-                  <MessageCircle className="h-8 w-8 mb-2" />
-                  <p className="text-xs">No hay mensajes aún.</p>
-                  <p className="text-xs">Escribe aquí cualquier duda que tengas sobre el entrenamiento.</p>
+                <div className="flex flex-col justify-center items-center h-full text-center space-y-3 opacity-40">
+                  <div className="h-12 w-12 rounded-full bg-white/5 flex items-center justify-center">
+                    <MessageCircle className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest">¿Dudas sobre el plan?</p>
+                    <p className="text-[10px] mt-1">Escribe aquí cualquier consulta o revisa los recordatorios.</p>
+                  </div>
                 </div>
               ) : (
-                messages.map((msg) => {
+                messages.map((msg, index) => {
                   const isMe = msg.sender_id === user.id;
+                  const isLast = index === messages.length - 1;
                   return (
-                    <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} gap-1`}>
+                    <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} gap-1 animate-in slide-in-from-bottom-2 fade-in duration-300`}>
                       <div 
-                        className={`px-3 py-2 rounded-2xl max-w-[85%] text-sm ${
+                        className={`px-4 py-2.5 max-w-[85%] text-xs font-medium leading-relaxed shadow-lg backdrop-blur-sm ${
                           isMe 
-                            ? 'bg-primary text-primary-foreground rounded-tr-sm' 
-                            : 'bg-muted text-foreground rounded-tl-sm'
+                            ? 'bg-primary/90 text-primary-foreground rounded-2xl rounded-tr-sm border border-primary/50' 
+                            : 'bg-white/10 text-white rounded-2xl rounded-tl-sm border border-white/5'
                         }`}
                       >
                         {msg.content}
                       </div>
-                      <span className="text-[9px] text-muted-foreground px-1">
+                      <span className={`text-[9px] text-white/40 px-2 font-medium tracking-wider ${isLast && !isMe ? 'animate-pulse' : ''}`}>
                         {format(new Date(msg.created_at), "HH:mm", { locale: es })}
                       </span>
                     </div>
@@ -127,14 +134,19 @@ export function ChatWidget() {
               )}
             </div>
 
-            <form onSubmit={handleSend} className="mt-4 pt-2 flex gap-2 items-center">
+            <form onSubmit={handleSend} className="p-3 border-t border-white/10 bg-black/20 flex gap-2 items-center backdrop-blur-md">
               <Input
-                placeholder="Escribe un mensaje..."
+                placeholder="Escribe tu mensaje..."
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                className="flex-1 text-sm bg-muted/50 border-transparent focus-visible:ring-1"
+                className="flex-1 text-xs h-10 bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:border-primary/50 placeholder:text-white/30 text-white transition-all rounded-xl"
               />
-              <Button type="submit" size="icon" disabled={!newMessage.trim()} className="h-10 w-10 shrink-0 rounded-full">
+              <Button 
+                type="submit" 
+                size="icon" 
+                disabled={!newMessage.trim() || isLoading} 
+                className="h-10 w-10 shrink-0 rounded-xl bg-primary hover:bg-primary/80 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary/20"
+              >
                 <Send className="h-4 w-4" />
               </Button>
             </form>

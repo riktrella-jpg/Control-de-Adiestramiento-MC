@@ -1,78 +1,186 @@
-
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { useAppState } from "@/context/app-state-provider";
 import { cn } from "@/lib/utils";
-import { Heart, Trophy, Calendar } from "lucide-react";
+import { Heart, PawPrint, Star } from "lucide-react";
 
 export function DogProfileCard({ className }: { className?: string }) {
-  const { selectedPet, uploads, achievements } = useAppState();
-  const level = Math.max(1, Math.min(7, uploads.length));
-  const completedAchievements = achievements.filter(a => a.completed).length;
+  const { selectedPet, uploads, achievements, progress } = useAppState();
+  const level = Math.max(1, Math.min(7, uploads.length + 1));
+  const completedAchievements = achievements.filter((a) => a.completed).length;
 
   return (
-    <Card className={cn("overflow-hidden border-white/5 bg-black/40 backdrop-blur-xl relative group shadow-[0_0_30px_rgba(0,0,0,0.5)] rounded-[2.5rem]", className)}>
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-20 pointer-events-none" />
-      <CardHeader className="relative pb-6 border-b border-white/5">
-        <div className="flex items-center gap-5">
-          <div className="relative">
-            <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-125 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-            <Avatar className="h-20 w-20 ring-4 ring-primary/20 ring-offset-4 ring-offset-black shadow-2xl relative z-10 transition-transform duration-500 group-hover:scale-105">
-              <AvatarImage src={selectedPet?.photo_url ?? "https://picsum.photos/seed/haku/100/100"} alt={selectedPet?.name ?? "Dog"} className="filter-vintage-art" />
-              <AvatarFallback className="text-2xl font-black bg-primary/10 text-primary">{selectedPet?.name?.[0].toUpperCase() ?? 'D'}</AvatarFallback>
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      className={cn(
+        "relative overflow-hidden rounded-[2rem] w-full",
+        className
+      )}
+      style={{
+        background:
+          "linear-gradient(135deg, rgba(212,175,55,0.08) 0%, rgba(0,0,0,0) 60%)",
+        border: "1px solid rgba(212,175,55,0.12)",
+        boxShadow: "0 8px 40px rgba(0,0,0,0.4)",
+      }}
+    >
+      {/* Blurred background glow from pet photo */}
+      <div className="absolute inset-0 overflow-hidden rounded-[2rem]">
+        {selectedPet?.photo_url && (
+          <div
+            className="absolute -top-8 -right-8 h-48 w-48 rounded-full hero-blur"
+            style={{
+              backgroundImage: `url(${selectedPet.photo_url})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          />
+        )}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-24"
+          style={{
+            background:
+              "linear-gradient(to top, rgba(8,8,8,0.8), transparent)",
+          }}
+        />
+      </div>
+
+      <div className="relative z-10 p-5">
+        {/* Top row: avatar + info + level badge */}
+        <div className="flex items-start gap-4">
+          {/* Pet avatar with ring */}
+          <div className="relative shrink-0">
+            <div
+              className="absolute inset-0 rounded-full pulse-ring"
+              style={{ borderRadius: "50%" }}
+            />
+            <Avatar
+              className="h-[72px] w-[72px] ring-2 ring-offset-2 ring-offset-black"
+              style={{ ringColor: "rgba(212,175,55,0.5)" }}
+            >
+              <AvatarImage
+                src={selectedPet?.photo_url ?? undefined}
+                alt={selectedPet?.name ?? "Dog"}
+                className="object-cover filter-vintage-art"
+              />
+              <AvatarFallback
+                className="text-2xl font-black"
+                style={{
+                  background: "rgba(212,175,55,0.15)",
+                  color: "#D4AF37",
+                }}
+              >
+                {(selectedPet?.name?.[0] ?? "🐾").toUpperCase()}
+              </AvatarFallback>
             </Avatar>
-            <div className="absolute -bottom-2 -right-2 bg-primary text-black h-8 w-8 rounded-full flex items-center justify-center font-black text-xs shadow-lg ring-4 ring-black z-20">
+            {/* Level badge */}
+            <div
+              className="absolute -bottom-1.5 -right-1.5 h-7 w-7 rounded-full flex items-center justify-center font-black text-[11px] ring-2 ring-black z-20"
+              style={{
+                background: "linear-gradient(135deg, #F5D98B, #D4AF37)",
+                color: "black",
+                boxShadow: "0 0 12px rgba(212,175,55,0.4)",
+              }}
+            >
               {level}
             </div>
           </div>
-          <div className="flex-1 space-y-1">
-            <CardTitle className="text-2xl font-black text-white leading-none tracking-tight uppercase group-hover:text-primary transition-colors">{selectedPet?.name || 'Cargando...'}</CardTitle>
-            <CardDescription className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">
-              <Heart className="h-3 w-3 fill-current" /> Miembro de la Manada
-            </CardDescription>
-          </div>
-          <Trophy className="h-8 w-8 text-primary shadow-[0_0_15px_rgba(252,196,25,0.4)] opacity-80" />
-        </div>
-      </CardHeader>
-      <CardContent className="pt-8 relative z-10">
-        <div className="grid grid-cols-1 gap-4">
-          <div className="flex items-center justify-between p-5 rounded-[2rem] bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.06] transition-all group/stat">
-            <div className="flex flex-col">
-              <span className="text-[9px] text-primary/50 uppercase font-black tracking-[0.3em] mb-1">Poder de Manada</span>
-              <span className="text-sm font-black text-white uppercase tracking-tighter">Habilidades Alcanzadas</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full border-2 border-primary/20 flex items-center justify-center font-black text-primary bg-primary/5">
-                {completedAchievements}
-              </div>
-            </div>
-          </div>
 
-          <div className="flex items-center justify-between p-5 rounded-[2rem] bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.06] transition-all group/stat">
-            <div className="flex flex-col">
-              <span className="text-[9px] text-primary/50 uppercase font-black tracking-[0.3em] mb-1">Índice de Consistencia</span>
-              <span className="text-sm font-black text-white uppercase tracking-tighter">Foco & Calma (IA)</span>
+          {/* Pet info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <PawPrint className="h-3 w-3 text-emerald-400 shrink-0" />
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-400/70">
+                Binomio Activo
+              </span>
             </div>
-            <div className="flex items-center gap-2">
-               <span className="text-2xl font-black text-white">100</span>
-               <span className="text-[10px] font-black text-primary/40 uppercase">%</span>
+            <h2 className="text-xl font-black text-white leading-none tracking-tight uppercase truncate">
+              {selectedPet?.name || "Cargando..."}
+            </h2>
+            <p className="text-[11px] font-semibold text-white/40 mt-0.5">
+              {selectedPet?.level || "Principiante"} · Manada Club
+            </p>
+
+            {/* Mini stars for achievements */}
+            <div className="flex items-center gap-1 mt-2">
+              {[...Array(Math.min(completedAchievements, 5))].map((_, i) => (
+                <Star
+                  key={i}
+                  className="h-3 w-3 fill-yellow-400 text-yellow-400"
+                />
+              ))}
+              {completedAchievements === 0 && (
+                <span className="text-[9px] text-white/30 font-medium">
+                  Completa tu primer logro
+                </span>
+              )}
             </div>
-          </div>
-          
-          <div className="pt-2 px-2">
-             <div className="flex justify-between text-[8px] font-black uppercase tracking-widest text-muted-foreground mb-1.5 opacity-50">
-                <span>Rendimiento Semanal</span>
-                <span>Óptimo</span>
-             </div>
-             <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                <div className="h-full w-[95%] bg-gradient-to-r from-primary/20 via-primary to-primary/20 rounded-full" />
-             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Progress bar */}
+        <div className="mt-5 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-widest text-white/40">
+              Progreso del Programa
+            </span>
+            <span
+              className="text-sm font-black tabular-nums"
+              style={{ color: "#D4AF37" }}
+            >
+              {progress}%
+            </span>
+          </div>
+          <div
+            className="h-2 w-full rounded-full overflow-hidden"
+            style={{ background: "rgba(255,255,255,0.06)" }}
+          >
+            <motion.div
+              className="h-full rounded-full"
+              style={{
+                background: "linear-gradient(90deg, #D4AF37, #F5D98B)",
+                boxShadow: "0 0 10px rgba(212,175,55,0.4)",
+              }}
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.max(progress, 3)}%` }}
+              transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1], delay: 0.3 }}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] text-white/25 font-medium">
+              Módulo 1 de 7
+            </span>
+            <span className="text-[9px] text-white/25 font-medium">
+              {completedAchievements} logros desbloqueados
+            </span>
+          </div>
+        </div>
+
+        {/* Stats mini row */}
+        <div className="grid grid-cols-3 gap-2 mt-4">
+          {[
+            { label: "Videos", value: uploads.length, color: "#D4AF37" },
+            { label: "Logros", value: completedAchievements, color: "#D4AF37" },
+            { label: "Nivel", value: level, color: "#D4AF37" },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              className="flex flex-col items-center py-2 rounded-xl"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}
+            >
+              <span className="text-base font-black" style={{ color: stat.color }}>
+                {stat.value}
+              </span>
+              <span className="text-[9px] text-white/30 font-bold uppercase tracking-wider">
+                {stat.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </motion.div>
   );
 }

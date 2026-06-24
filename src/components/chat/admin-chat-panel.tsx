@@ -42,41 +42,47 @@ export function AdminChatPanel({ userId, userName }: AdminChatPanelProps) {
   };
 
   return (
-    <Card className="h-[500px] flex flex-col border-primary/20 shadow-lg">
-      <CardHeader className="border-b pb-4 bg-primary/5">
-        <CardTitle className="text-sm font-bold flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-primary" />
+    <Card className="h-[500px] flex flex-col border-white/10 shadow-2xl bg-black/40 backdrop-blur-md relative overflow-hidden group/chat">
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-transparent opacity-0 group-hover/chat:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+      <CardHeader className="border-b border-white/10 pb-4 bg-white/5 backdrop-blur-sm z-10 relative">
+        <CardTitle className="text-sm font-black flex items-center gap-2 tracking-widest uppercase text-white/90">
+          <MessageSquare className="h-4 w-4 text-primary animate-pulse" />
           Chat con {userName}
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="flex-1 p-4 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto space-y-4 pr-2" ref={scrollRef}>
+      <CardContent className="flex-1 p-0 flex flex-col overflow-hidden relative z-10">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent" ref={scrollRef}>
           {isLoading ? (
             <div className="flex justify-center items-center h-full">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <Loader2 className="h-8 w-8 animate-spin text-primary/50" />
             </div>
           ) : messages.length === 0 ? (
-            <div className="flex flex-col justify-center items-center h-full text-center space-y-2 opacity-50">
-              <MessageSquare className="h-8 w-8 mb-2" />
-              <p className="text-sm">No hay mensajes.</p>
-              <p className="text-xs">Envía el primer mensaje para iniciar la conversación.</p>
+            <div className="flex flex-col justify-center items-center h-full text-center space-y-3 opacity-40">
+              <div className="h-12 w-12 rounded-full bg-white/5 flex items-center justify-center">
+                <MessageSquare className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest">Sin Contacto Previo</p>
+                <p className="text-[10px] mt-1">Inicia la conversación enviando un mensaje o recordatorio.</p>
+              </div>
             </div>
           ) : (
-            messages.map((msg) => {
+            messages.map((msg, index) => {
               const isMe = msg.sender_id === user?.id;
+              const isLast = index === messages.length - 1;
               return (
-                <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} gap-1`}>
+                <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} gap-1 animate-in slide-in-from-bottom-2 fade-in duration-300`}>
                   <div 
-                    className={`px-3 py-2 rounded-2xl max-w-[85%] text-sm ${
+                    className={`px-4 py-2.5 max-w-[85%] text-xs font-medium leading-relaxed shadow-md backdrop-blur-sm ${
                       isMe 
-                        ? 'bg-primary text-primary-foreground rounded-tr-sm' 
-                        : 'bg-muted text-foreground rounded-tl-sm'
+                        ? 'bg-primary/90 text-primary-foreground rounded-2xl rounded-tr-sm border border-primary/50' 
+                        : 'bg-white/10 text-white rounded-2xl rounded-tl-sm border border-white/5'
                     }`}
                   >
                     {msg.content}
                   </div>
-                  <span className="text-[10px] text-muted-foreground px-1">
+                  <span className={`text-[9px] text-white/40 px-2 font-medium tracking-wider ${isLast ? 'animate-pulse' : ''}`}>
                     {format(new Date(msg.created_at), "HH:mm", { locale: es })}
                   </span>
                 </div>
@@ -85,16 +91,20 @@ export function AdminChatPanel({ userId, userName }: AdminChatPanelProps) {
           )}
         </div>
 
-        <form onSubmit={handleSend} className="mt-4 pt-4 border-t flex gap-2 items-center">
+        <form onSubmit={handleSend} className="p-3 border-t border-white/10 bg-black/20 flex gap-2 items-center backdrop-blur-md">
           <Input
-            placeholder="Escribe un mensaje al alumno..."
+            placeholder="Escribe un comentario o recordatorio..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            className="flex-1 text-sm focus-visible:ring-1"
+            className="flex-1 text-xs h-10 bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:border-primary/50 placeholder:text-white/30 text-white transition-all rounded-xl"
           />
-          <Button type="submit" disabled={!newMessage.trim() || isLoading} className="shrink-0 gap-2">
+          <Button 
+            type="submit" 
+            disabled={!newMessage.trim() || isLoading} 
+            size="icon"
+            className="h-10 w-10 shrink-0 rounded-xl bg-primary hover:bg-primary/80 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary/20"
+          >
             <Send className="h-4 w-4" />
-            <span className="hidden sm:inline">Enviar</span>
           </Button>
         </form>
       </CardContent>

@@ -1,156 +1,208 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+"use client";
+
+import { motion } from "framer-motion";
 import { useAppState } from "@/context/app-state-provider";
 import { cn } from "@/lib/utils";
-import { Trophy, Star, Shield, Flame, Activity } from "lucide-react";
-import { motion } from "motion/react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts";
-import { useMemo } from "react";
+import { Lock, Trophy, ChevronRight } from "lucide-react";
 
 export function AchievementsCard({ className }: { className?: string }) {
-  const { achievements, modules } = useAppState();
-
-  // Doble fuente de verdad: usa el máximo entre:
-  // 1. Logros marcados como completed (desde la DB o auto-visual en AppStateProvider)
-  // 2. Módulos que tienen el 100% de sus semanas completadas (medición directa)
-  const completedCount = useMemo(() => {
-    // Solo contar logros que son certificaciones de módulo (para que el /7 tenga sentido)
-    const fromAchievements = achievements.filter(a => a.completed && a.id.startsWith('cert_module')).length;
-    const fromModules = modules.filter(m => {
-      if (!m.weeks.length) return false;
-      const done = m.weeks.filter(w => w.completed).length;
-      return done === m.weeks.length; // Estricto 100%
-    }).length;
-    // Tomar el máximo para no subestimar nunca el nivel real
-    return Math.max(fromAchievements, fromModules);
-  }, [achievements, modules]);
-  
-  // Dynamic stats based on completed achievements (simulated power levels)
-  const powerStats = [
-    { subject: 'Vínculo', A: 50 + (completedCount * 8), fullMark: 100 },
-    { subject: 'Foco', A: 40 + (completedCount * 10), fullMark: 100 },
-    { subject: 'Calma', A: 60 + (completedCount * 5), fullMark: 100 },
-    { subject: 'Control', A: 30 + (completedCount * 12), fullMark: 100 },
-    { subject: 'Obediencia', A: 45 + (completedCount * 9), fullMark: 100 },
-  ];
+  const { achievements } = useAppState();
+  const completed = achievements.filter((a) => a.completed);
+  const locked = achievements.filter((a) => !a.completed);
+  const totalCompleted = completed.length;
+  const total = achievements.length;
+  const pct = total > 0 ? Math.round((totalCompleted / total) * 100) : 0;
 
   return (
-    <Card className={cn("overflow-hidden border-primary/10 shadow-2xl bg-black/60 backdrop-blur-3xl relative", className)}>
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent opacity-50" />
-      
-      <CardHeader className="pb-4 relative z-10">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-xl font-black tracking-tight uppercase flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-primary" />
-              Nivel de Manada
-            </CardTitle>
-            <CardDescription className="font-medium text-xs text-primary/60 tracking-widest uppercase">
-              Rendimiento y Condecoraciones
-            </CardDescription>
+    <div className={cn("space-y-4", className)}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-0.5 rounded-full bg-yellow-500" />
+          <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">
+            Logros & Certificaciones
+          </h2>
+        </div>
+        <span
+          className="text-[10px] font-black tabular-nums"
+          style={{ color: "#D4AF37" }}
+        >
+          {totalCompleted}/{total}
+        </span>
+      </div>
+
+      {/* Card container */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        className="rounded-[2rem] overflow-hidden"
+        style={{
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid rgba(255,255,255,0.06)",
+        }}
+      >
+        {/* Progress header */}
+        <div className="p-5 pb-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Trophy
+                className="h-4 w-4"
+                style={{
+                  color: "#D4AF37",
+                  filter: "drop-shadow(0 0 6px rgba(212,175,55,0.5))",
+                }}
+              />
+              <span className="text-sm font-black text-white">
+                {totalCompleted === 0
+                  ? "Comienza tu camino"
+                  : totalCompleted === total
+                  ? "¡Programa Completado! 🎉"
+                  : `${totalCompleted} certificaciones obtenidas`}
+              </span>
+            </div>
+            <span
+              className="text-base font-black"
+              style={{ color: pct > 0 ? "#D4AF37" : "rgba(255,255,255,0.2)" }}
+            >
+              {pct}%
+            </span>
           </div>
-          <div className="text-right">
-             <div className="text-2xl font-black text-white drop-shadow-[0_0_10px_rgba(212,175,55,0.5)]">
-                {completedCount}
-                <span className="text-sm text-muted-foreground ml-1">/ {modules.length}</span>
-             </div>
+
+          {/* Overall progress */}
+          <div
+            className="h-2 w-full rounded-full overflow-hidden"
+            style={{ background: "rgba(255,255,255,0.06)" }}
+          >
+            <motion.div
+              className="h-full rounded-full"
+              style={{
+                background:
+                  pct === 100
+                    ? "linear-gradient(90deg, #D4AF37, #F5D98B, #D4AF37)"
+                    : "linear-gradient(90deg, #D4AF37, #B8860B)",
+                boxShadow: pct > 0 ? "0 0 8px rgba(212,175,55,0.4)" : "none",
+              }}
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.max(pct, pct > 0 ? 4 : 0)}%` }}
+              transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1], delay: 0.3 }}
+            />
           </div>
         </div>
-      </CardHeader>
 
-      <CardContent className="px-5 relative z-10 space-y-6">
-        
-        {/* Radar Chart Section */}
-        <div className="h-[200px] w-full bg-white/[0.02] rounded-2xl border border-white/5 p-2 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-primary/5 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-            <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius="70%" data={powerStats}>
-              <PolarGrid stroke="rgba(255,255,255,0.1)" />
-              <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 'bold' }} />
-              <Radar name="Binomio" dataKey="A" stroke="#d4af37" strokeWidth={2} fill="#d4af37" fillOpacity={0.3} />
-            </RadarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Achievements List */}
-        <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-          <TooltipProvider>
+        {/* Achievements grid */}
+        <div className="px-4 pb-5">
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
             {achievements.map((achievement, idx) => {
-              const isFoundations = achievement.id === "cert_module1";
-              
-              return (
-                <motion.div 
-                  key={achievement.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                >
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className={cn(
-                        "flex items-center gap-4 p-3 rounded-2xl transition-all duration-500 relative group overflow-hidden border",
-                        achievement.completed 
-                          ? isFoundations 
-                            ? "bg-gradient-to-r from-primary/30 to-primary/5 border-primary shadow-[0_0_20px_rgba(212,175,55,0.3)]"
-                            : "bg-gradient-to-r from-primary/10 to-transparent border-primary/20 shadow-[0_0_15px_rgba(212,175,55,0.1)] hover:shadow-[0_0_25px_rgba(212,175,55,0.2)]" 
-                          : "bg-black/40 border-white/5 grayscale opacity-60 hover:opacity-100"
-                      )}>
-                        {/* Shine Effect */}
-                        {achievement.completed && (
-                           <div className="absolute top-0 left-[-100%] w-1/2 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 group-hover:animate-shine" />
-                        )}
-                        
-                        <div className={cn(
-                          "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-all duration-500 shadow-inner relative z-10",
-                          achievement.completed 
-                            ? isFoundations ? "bg-primary text-black" : "bg-primary/20 ring-1 ring-primary/50" 
-                            : "bg-white/5"
-                        )}>
-                          <achievement.icon className={cn(
-                            "h-6 w-6 transition-all duration-500",
-                            achievement.completed 
-                              ? isFoundations ? "text-black scale-125" : "text-primary drop-shadow-[0_0_8px_rgba(212,175,55,0.8)] scale-110" 
-                              : "text-muted-foreground/50"
-                          )} />
-                        </div>
-                        
-                        <div className="flex-1 min-w-0 relative z-10">
-                          <p className={cn(
-                            "font-black text-[11px] uppercase tracking-widest mb-0.5 transition-colors",
-                            achievement.completed ? "text-white" : "text-muted-foreground"
-                          )}>
-                            {achievement.title}
-                            {isFoundations && achievement.completed && <span className="ml-2 text-[8px] bg-primary text-black px-1.5 py-0.5 rounded-full animate-pulse">ELITE</span>}
-                          </p>
-                          <p className={cn(
-                            "text-[10px] leading-tight line-clamp-1 italic",
-                            achievement.completed ? "text-primary/70" : "text-muted-foreground"
-                          )}>
-                            {achievement.description}
-                          </p>
-                        </div>
+              const AchIcon = achievement.icon;
+              const isCompleted = achievement.completed;
 
-                        {achievement.completed && (
-                          <div className="flex items-center gap-1">
-                            <Star className={cn("h-4 w-4 text-primary fill-primary animate-pulse shadow-[0_0_10px_rgba(212,175,55,1)]", isFoundations && "h-5 w-5")} />
-                          </div>
-                        )}
-                      </div>
-                    </TooltipTrigger>
-                    {!achievement.completed && (
-                      <TooltipContent className="bg-black/90 backdrop-blur-xl text-white font-bold border border-white/10 shadow-2xl rounded-xl p-3">
-                        <p className="text-[10px] uppercase tracking-widest text-primary mb-1">Misión Bloqueada</p>
-                        <p className="text-xs text-muted-foreground">{achievement.description}</p>
-                      </TooltipContent>
+              return (
+                <motion.div
+                  key={achievement.id}
+                  initial={{ opacity: 0, scale: 0.7 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{
+                    delay: 0.4 + idx * 0.05,
+                    type: "spring",
+                    stiffness: 450,
+                    damping: 20,
+                  }}
+                  className="flex flex-col items-center gap-1.5 p-2.5 rounded-2xl relative"
+                  style={{
+                    background: isCompleted
+                      ? "rgba(212,175,55,0.08)"
+                      : "rgba(255,255,255,0.02)",
+                    border: isCompleted
+                      ? "1px solid rgba(212,175,55,0.2)"
+                      : "1px solid rgba(255,255,255,0.04)",
+                  }}
+                >
+                  {/* Medal icon */}
+                  <div
+                    className="relative h-10 w-10 rounded-full flex items-center justify-center"
+                    style={{
+                      background: isCompleted
+                        ? "rgba(212,175,55,0.15)"
+                        : "rgba(255,255,255,0.04)",
+                    }}
+                  >
+                    {isCompleted ? (
+                      <>
+                        <AchIcon
+                          className="h-5 w-5"
+                          style={{
+                            color: "#D4AF37",
+                            filter:
+                              "drop-shadow(0 0 6px rgba(212,175,55,0.6))",
+                          }}
+                        />
+                        {/* Glow ring */}
+                        <div
+                          className="absolute inset-0 rounded-full"
+                          style={{
+                            boxShadow: "0 0 12px rgba(212,175,55,0.3)",
+                          }}
+                        />
+                      </>
+                    ) : (
+                      <Lock className="h-4 w-4 text-white/15" />
                     )}
-                  </Tooltip>
+                  </div>
+
+                  {/* Label */}
+                  <span
+                    className="text-[8px] font-bold text-center leading-tight line-clamp-2"
+                    style={{
+                      color: isCompleted
+                        ? "rgba(212,175,55,0.8)"
+                        : "rgba(255,255,255,0.2)",
+                    }}
+                  >
+                    {achievement.title
+                      .replace("Certificación: ", "")
+                      .split(" ")
+                      .slice(0, 3)
+                      .join(" ")}
+                  </span>
+
+                  {/* Completed check */}
+                  {isCompleted && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 h-4 w-4 rounded-full flex items-center justify-center text-[8px] font-black"
+                      style={{
+                        background: "linear-gradient(135deg, #D4AF37, #B8860B)",
+                        color: "#fff",
+                        boxShadow: "0 0 8px rgba(212,175,55,0.5)",
+                      }}
+                    >
+                      ✓
+                    </motion.div>
+                  )}
                 </motion.div>
               );
             })}
-          </TooltipProvider>
-        </div>
-      </CardContent>
-    </Card>
+          </div>
 
+          {/* CTA if no achievements */}
+          {totalCompleted === 0 && (
+            <div
+              className="mt-4 flex items-center gap-3 p-3 rounded-xl"
+              style={{
+                background: "rgba(212,175,55,0.05)",
+                border: "1px dashed rgba(212,175,55,0.15)",
+              }}
+            >
+              <Trophy className="h-5 w-5 text-yellow-500/40 shrink-0" />
+              <p className="text-[10px] text-white/30 font-medium">
+                Completa módulos del curso para desbloquear certificaciones.
+              </p>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </div>
   );
 }

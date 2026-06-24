@@ -24,6 +24,7 @@ import {
   PartyPopper,
   Activity,
   ShieldCheck,
+  Trash2,
 } from "lucide-react";
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from "motion/react";
@@ -75,14 +76,15 @@ const baseLinks = [
   { href: "/dashboard/ethology", icon: BookOpen, label: "Etología en Manada" },
   { href: "/dashboard/progress", icon: BarChart3, label: "Progreso" },
   { href: "/dashboard/tasks", icon: ClipboardList, label: "Tareas" },
-  { href: "/dashboard/planner", icon: WandSparkles, label: "Planificador" },
+  { href: "/dashboard/planner", icon: WandSparkles, label: "Planificador MC" },
+  { href: "/dashboard/carnet", icon: Activity, label: "Carnet Digital" },
   { href: "https://www.facebook.com", icon: Users, label: "Comunidad", target: "_blank" },
 ];
 
 export function SidebarNav() {
   const pathname = usePathname();
   const { 
-    user, userProfile, pets, selectedPet, selectPet, addPet, updateDogPhoto 
+    user, userProfile, pets, selectedPet, selectPet, addPet, updateDogPhoto, deletePet 
   } = useAppState();
   const router = useRouter();
   const supabase = createClient();
@@ -157,17 +159,21 @@ export function SidebarNav() {
   return (
     <>
       <SidebarHeader className="p-4">
-        <div className="flex flex-col items-center gap-2.5 mb-5 pt-1">
-          <div className="relative flex justify-center items-center" style={{ width: 68, height: 68 }}>
+        <div className="flex flex-col items-center gap-2 mb-5 pt-2">
+          <div className="relative flex justify-center items-center" style={{ width: 64, height: 64 }}>
             <Image
               src={Logo}
               alt="MC APP"
-              width={68}
-              height={68}
-              className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(252,196,25,0.3)]"
+              width={64}
+              height={64}
+              className="w-full h-full object-contain"
+              style={{ filter: 'drop-shadow(0 0 12px rgba(16,185,129,0.35))' }}
             />
           </div>
-          <span className="text-[11px] font-black tracking-[0.2em] text-white/70 uppercase">MC APP</span>
+          <div className="flex flex-col items-center gap-0">
+            <span className="text-[13px] font-black tracking-[0.2em] text-white/90 uppercase">MANADA</span>
+            <span className="text-[9px] font-black tracking-[0.25em] uppercase" style={{ color: '#10B981' }}>CLUB</span>
+          </div>
         </div>
 
         <DropdownMenu>
@@ -190,21 +196,22 @@ export function SidebarNav() {
             <DropdownMenuSeparator className="bg-white/5" />
             <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
               {pets.map(pet => (
-                <DropdownMenuItem 
-                  key={pet.id} 
-                  onClick={() => selectPet(pet.id)}
-                  className={`flex items-center gap-3 p-2 rounded-xl mb-1 cursor-pointer transition-all ${selectedPet?.id === pet.id ? 'bg-primary/10 text-primary' : 'hover:bg-white/5'}`}
-                >
-                  <Avatar className="h-8 w-8 border border-white/10">
-                    <AvatarImage src={pet.photo_url} className="object-cover" />
-                    <AvatarFallback className="text-[10px] font-bold">{(pet.name[0]).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 overflow-hidden">
-                    <p className="text-sm font-bold truncate">{pet.name}</p>
-                    <p className="text-[10px] opacity-60 uppercase">{pet.level || 'Principiante'}</p>
-                  </div>
-                  {selectedPet?.id === pet.id && <Star className="h-3 w-3 fill-primary text-primary" />}
-                </DropdownMenuItem>
+                <div key={pet.id} className="relative group/pet flex items-center mb-1">
+                  <DropdownMenuItem 
+                    onClick={() => selectPet(pet.id)}
+                    className={`flex-1 flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all ${selectedPet?.id === pet.id ? 'bg-primary/10 text-primary' : 'hover:bg-white/5'}`}
+                  >
+                    <Avatar className="h-8 w-8 border border-white/10">
+                      <AvatarImage src={pet.photo_url} className="object-cover" />
+                      <AvatarFallback className="text-[10px] font-bold">{(pet.name[0]).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 overflow-hidden">
+                      <p className="text-sm font-bold truncate">{pet.name}</p>
+                      <p className="text-[10px] opacity-60 uppercase">{pet.level || 'Principiante'}</p>
+                    </div>
+                    {selectedPet?.id === pet.id && <Star className="h-3 w-3 fill-primary text-primary" />}
+                  </DropdownMenuItem>
+                </div>
               ))}
             </div>
           </DropdownMenuContent>
@@ -213,59 +220,102 @@ export function SidebarNav() {
 
       <SidebarContent className="flex-1 overflow-auto p-2">
         <SidebarMenu className="gap-1">
-          {allLinks.map((link) => (
-            <SidebarMenuItem key={link.href}>
-              <SidebarMenuButton
-                asChild={link.href !== "/settings"}
-                isActive={pathname === link.href && !link.target}
-                tooltip={link.label}
-                onClick={link.href === "/settings" ? () => setAddPetOpen(true) : undefined}
-                className={`rounded-xl h-11 transition-all border border-transparent ${pathname === link.href ? 'bg-primary/20 border-primary/20 shadow-inner' : 'hover:bg-white/[0.03]'}`}
-              >
-                {link.href === "/settings" ? (
-                  <div className="flex items-center gap-3 w-full cursor-pointer">
-                    <div className="p-2 rounded-lg bg-white/5 text-muted-foreground group-hover:text-primary transition-colors">
-                      <link.icon className="h-4 w-4" />
+          {allLinks.map((link) => {
+            const isActive = pathname === link.href && !link.target;
+            return (
+              <SidebarMenuItem key={link.href}>
+                <SidebarMenuButton
+                  asChild={link.href !== "/settings"}
+                  isActive={isActive}
+                  tooltip={link.label}
+                  onClick={link.href === "/settings" ? () => setAddPetOpen(true) : undefined}
+                  className={`rounded-2xl h-12 transition-all border ${
+                    isActive
+                      ? 'border-emerald-500/20 shadow-inner'
+                      : 'border-transparent hover:bg-white/[0.03]'
+                  }`}
+                  style={isActive ? { background: 'rgba(16,185,129,0.08)' } : {}}
+                >
+                  {link.href === "/settings" ? (
+                    <div className="flex items-center gap-3 w-full cursor-pointer">
+                      <div className="p-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                        <link.icon className="h-4 w-4 text-white/40" />
+                      </div>
+                      <span className="text-sm font-bold text-white/40">{link.label}</span>
                     </div>
-                    <span className="text-sm font-bold text-muted-foreground">{link.label}</span>
-                  </div>
-                ) : (
-                  <Link href={link.href} target={link.target} className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg transition-colors ${pathname === link.href ? 'bg-primary text-black' : 'bg-white/5 text-muted-foreground group-hover:text-primary'}`}>
-                      <link.icon className="h-4 w-4" />
-                    </div>
-                    <span className={`text-sm font-bold ${pathname === link.href ? 'text-white' : 'text-muted-foreground'}`}>{link.label}</span>
-                  </Link>
-                )}
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
+                  ) : (
+                    <Link href={link.href} target={link.target} className="flex items-center gap-3">
+                      <div
+                        className="p-2 rounded-xl transition-all"
+                        style={{
+                          background: isActive ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)',
+                        }}
+                      >
+                        <link.icon
+                          className="h-4 w-4 transition-colors"
+                          style={{ color: isActive ? '#10B981' : 'rgba(255,255,255,0.35)' }}
+                        />
+                      </div>
+                      <span
+                        className="text-sm font-bold transition-colors"
+                        style={{ color: isActive ? '#ffffff' : 'rgba(255,255,255,0.4)' }}
+                      >
+                        {link.label}
+                      </span>
+                      {isActive && (
+                        <div className="ml-auto h-1.5 w-1.5 rounded-full" style={{ background: '#10B981' }} />
+                      )}
+                    </Link>
+                  )}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
         </SidebarMenu>
       </SidebarContent>
 
       <SidebarSeparator className="bg-white/5 mx-4" />
 
-      <SidebarFooter className="p-4 gap-4">
-        <div className="flex flex-col gap-2">
-           <Button variant="ghost" onClick={() => setProfileOpen(true)} className="w-full justify-start gap-3 rounded-xl hover:bg-white/5 text-muted-foreground hover:text-white">
-              <Settings2 className="h-4 w-4" />
-              <span className="text-sm font-bold">Ajustes</span>
-           </Button>
-           <Button variant="ghost" onClick={handleSignOut} className="w-full justify-start gap-3 rounded-xl hover:bg-red-500/10 text-muted-foreground hover:text-red-400">
-              <LogOut className="h-4 w-4" />
-              <span className="text-sm font-bold">Salir</span>
-           </Button>
+      <SidebarFooter className="p-3 gap-3">
+        {/* User card */}
+        <div
+          className="rounded-2xl p-3 flex items-center gap-3"
+          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          <Avatar className="h-9 w-9 ring-1 ring-offset-1 ring-offset-black" style={{ ringColor: 'rgba(16,185,129,0.3)' }}>
+            <AvatarImage src={userProfile?.dogPhotoURL} className="object-cover" />
+            <AvatarFallback
+              className="font-black text-xs"
+              style={{ background: 'rgba(16,185,129,0.15)', color: '#10B981' }}
+            >
+              {(userProfile?.displayName?.[0] || 'M').toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="overflow-hidden flex-1 min-w-0">
+            <p className="font-black text-xs text-white truncate uppercase tracking-tight">
+              {userProfile?.displayName || 'Usuario'}
+            </p>
+            <p className="text-[9px] truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>{user?.email}</p>
+          </div>
         </div>
 
-        <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-3 flex items-center gap-3">
-           <Avatar className="h-10 w-10 border-2 border-white/10">
-             <AvatarImage src={userProfile?.dogPhotoURL} className="object-cover" />
-             <AvatarFallback className="font-black">{(userProfile?.displayName?.[0] || 'M').toUpperCase()}</AvatarFallback>
-           </Avatar>
-           <div className="overflow-hidden">
-              <p className="font-black text-xs text-white truncate uppercase tracking-tight">{userProfile?.displayName || "Usuario"}</p>
-              <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
-           </div>
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            onClick={() => setProfileOpen(true)}
+            className="flex-1 justify-start gap-2 rounded-xl h-9 text-white/40 hover:text-white hover:bg-white/5 text-xs font-bold"
+          >
+            <Settings2 className="h-3.5 w-3.5" />
+            Ajustes
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={handleSignOut}
+            className="flex-1 justify-start gap-2 rounded-xl h-9 text-white/40 hover:text-red-400 hover:bg-red-500/10 text-xs font-bold"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Salir
+          </Button>
         </div>
       </SidebarFooter>
 

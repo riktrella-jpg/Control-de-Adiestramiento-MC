@@ -1,24 +1,24 @@
-
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { WandSparkles, Lightbulb, Dog, ListOrdered, Sparkles, ThumbsUp, ThumbsDown, MessageSquare } from "lucide-react";
+import {
+  WandSparkles,
+  Lightbulb,
+  Dog,
+  ListOrdered,
+  Sparkles,
+  ThumbsUp,
+  ThumbsDown,
+  MessageSquare,
+} from "lucide-react";
 import { useAppState } from "@/context/app-state-provider";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,34 +30,32 @@ import { createClient } from "@/supabase/client";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import Groq from "groq-sdk";
+import { motion, AnimatePresence } from "framer-motion";
 
-
-
-// Types moved here from the flow file
 export type GeneratePlanInput = z.infer<typeof planSchema>;
 
 export type GeneratePlanOutput = {
-    analysis: string;
-    focusAreas: string[];
-    planSteps: {
-        step: number;
-        title: string;
-        description: string;
-        duration: string;
-    }[];
-    proTip: string;
+  analysis: string;
+  focusAreas: string[];
+  planSteps: {
+    step: number;
+    title: string;
+    description: string;
+    duration: string;
+  }[];
+  proTip: string;
 };
 
 const planSchema = z.object({
-    mainProblem: z.string().min(1, "Debes seleccionar un problema."),
-    context: z.string().min(1, "Debes seleccionar dónde ocurre."),
-    intensity: z.string().min(1, "Selecciona la intensidad."),
-    dogInfo: z.string().min(1, "Debes describir a tu perro."),
-    details: z.string().min(1, "Por favor, da más detalles de la situación."),
-    comorbidities: z.array(z.string()).optional()
+  mainProblem: z.string().min(1, "Debes seleccionar un problema."),
+  context: z.string().min(1, "Debes seleccionar dónde ocurre."),
+  intensity: z.string().min(1, "Selecciona la intensidad."),
+  dogInfo: z.string().min(1, "Debes describir a tu perro."),
+  details: z.string().min(1, "Por favor, da más detalles de la situación."),
+  comorbidities: z.array(z.string()).optional(),
 });
 
-async function callGroq(input: GeneratePlanInput & { dogName?: string, ownerName?: string }): Promise<GeneratePlanOutput> {
+async function callGroq(input: GeneratePlanInput & { dogName?: string; ownerName?: string }): Promise<GeneratePlanOutput> {
   const apiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -65,9 +63,9 @@ async function callGroq(input: GeneratePlanInput & { dogName?: string, ownerName
     );
   }
 
-  const groq = new Groq({ 
-    apiKey, 
-    dangerouslyAllowBrowser: true // Necessary for client-side API calls in dev
+  const groq = new Groq({
+    apiKey,
+    dangerouslyAllowBrowser: true,
   });
 
   const prompt = `
@@ -81,14 +79,14 @@ async function callGroq(input: GeneratePlanInput & { dogName?: string, ownerName
     5. Desensibilización: Exponer gradualmente al perro a sus miedos de manera controlada.
     6. Adaptación: Ayudar al perro a generalizar el buen comportamiento a diferentes entornos.
 
-    Un usuario, ${input.ownerName || 'Dueño'}, necesita un plan de entrenamiento personalizado para su perro, ${input.dogName || 'su perro'}.
+    Un usuario, ${input.ownerName || "Dueño"}, necesita un plan de entrenamiento personalizado para su perro, ${input.dogName || "su perro"}.
     
     **Aquí está la información estructurada que proporcionó:**
     - **Problema Principal:** ${input.mainProblem}
     - **Contexto/Escenario:** ${input.context}
     - **Intensidad/Urgencia:** ${input.intensity}
     - **Perfil del Perro:** ${input.dogInfo}
-    - **Comorbilidades del Guía:** ${input.comorbidities?.join(', ') || 'Ninguna especificada'}
+    - **Comorbilidades del Guía:** ${input.comorbidities?.join(", ") || "Ninguna especificada"}
     - **Situación Detallada (El Por Qué):** "${input.details}"
 
     **Tu Tarea:**
@@ -114,12 +112,12 @@ async function callGroq(input: GeneratePlanInput & { dogName?: string, ownerName
     messages: [
       {
         role: "system",
-        content: "Eres un experto entrenador de perros. Responde siempre en formato JSON."
+        content: "Eres un experto entrenador de perros. Responde siempre en formato JSON.",
       },
       {
         role: "user",
-        content: prompt
-      }
+        content: prompt,
+      },
     ],
     model: "llama-3.3-70b-versatile",
     response_format: { type: "json_object" },
@@ -139,190 +137,204 @@ async function callGroq(input: GeneratePlanInput & { dogName?: string, ownerName
 }
 
 function PlanResult({ result }: { result: GeneratePlanOutput }) {
-    const [feedback, setFeedback] = useState<{ rating: 'up' | 'down' | null, comment: string }>({ rating: null, comment: '' });
-    const [submitted, setSubmitted] = useState(false);
+  const [feedback, setFeedback] = useState<{ rating: "up" | "down" | null; comment: string }>({
+    rating: null,
+    comment: "",
+  });
+  const [submitted, setSubmitted] = useState(false);
 
-    const supabase = createClient();
-    const { user } = useUser();
+  const supabase = createClient();
+  const { user } = useUser();
 
-    const handleFeedback = async () => {
-        if (!user || !feedback.rating) return;
-        
-        try {
-            await supabase.from('ai_feedback').insert({
-                user_id: user.id,
-                rating: feedback.rating,
-                comment: feedback.comment || "",
-            });
-            setSubmitted(true);
-        } catch (error) {
-            console.error("Error saving feedback:", error);
-            // Even if it fails, we show the thanks message to the user for UX
-            setSubmitted(true);
-        }
-    };
+  const handleFeedback = async () => {
+    if (!user || !feedback.rating) return;
 
-    return (
-        <div className="mt-6 space-y-6">
-            <Alert className="bg-primary/5 border-primary/20">
-                <Lightbulb className="h-4 w-4 text-primary" />
-                <AlertTitle className="text-primary font-bold">Análisis de la Situación</AlertTitle>
-                <AlertDescription className="text-foreground/90 italic">&quot;{result.analysis}&quot;</AlertDescription>
-            </Alert>
+    try {
+      await supabase.from("ai_feedback").insert({
+        user_id: user.id,
+        rating: feedback.rating,
+        comment: feedback.comment || "",
+      });
+      setSubmitted(true);
+    } catch (error) {
+      console.error("Error saving feedback:", error);
+      setSubmitted(true);
+    }
+  };
 
-            <div className="space-y-3">
-                <h4 className="font-bold text-foreground flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                    Áreas de Enfoque MANADA
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                    {result.focusAreas.map((area) => (
-                        <Badge key={area} variant="secondary" className="px-3 py-1 bg-primary/10 text-primary border-none hover:bg-primary/20 transition-colors">
-                            {area}
-                        </Badge>
-                    ))}
-                </div>
-            </div>
-
-            <div className="space-y-4">
-                <h4 className="font-bold text-foreground flex items-center gap-2">
-                    <ListOrdered className="h-5 w-5 text-primary"/> 
-                    Plan de Acción Paso a Paso
-                </h4>
-                <div className="grid gap-4">
-                    {result.planSteps.map((step) => (
-                        <div key={step.step} className="p-5 rounded-xl border bg-card shadow-sm hover:shadow-md transition-shadow">
-                            <div className="flex items-start gap-4">
-                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-sm">
-                                    {step.step}
-                                </div>
-                                <div className="space-y-1">
-                                    <p className="font-bold text-foreground">{step.title}</p>
-                                    <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
-                                    <div className="flex items-center gap-1.5 mt-3 text-xs font-semibold text-primary bg-primary/5 px-2 py-1 rounded-md w-fit">
-                                        <WandSparkles className="h-3 w-3" />
-                                        Duración: {step.duration}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            <Alert className="bg-secondary/20 border-secondary/30">
-                <Dog className="h-4 w-4 text-secondary-foreground" />
-                <AlertTitle className="font-bold">Consejo del Entrenador</AlertTitle>
-                <AlertDescription className="text-foreground/90">{result.proTip}</AlertDescription>
-            </Alert>
-
-            {/* Feedback Section */}
-            <Card className="border-dashed bg-muted/30">
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-bold flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4 text-primary" />
-                        ¿Te ha sido útil este plan?
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                        Tu opinión nos ayuda a mejorar las recomendaciones de la IA.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {!submitted ? (
-                        <>
-                            <div className="flex gap-4">
-                                <Button 
-                                    variant={feedback.rating === 'up' ? "default" : "outline"} 
-                                    size="sm" 
-                                    className="flex-1 gap-2"
-                                    onClick={() => setFeedback(prev => ({ ...prev, rating: 'up' }))}
-                                >
-                                    <ThumbsUp className="h-4 w-4" />
-                                    Útil
-                                </Button>
-                                <Button 
-                                    variant={feedback.rating === 'down' ? "destructive" : "outline"} 
-                                    size="sm" 
-                                    className="flex-1 gap-2"
-                                    onClick={() => setFeedback(prev => ({ ...prev, rating: 'down' }))}
-                                >
-                                    <ThumbsDown className="h-4 w-4" />
-                                    No mucho
-                                </Button>
-                            </div>
-                            <Textarea 
-                                placeholder="¿Algún comentario adicional?" 
-                                className="text-xs min-h-[60px]"
-                                value={feedback.comment}
-                                onChange={(e) => setFeedback(prev => ({ ...prev, comment: e.target.value }))}
-                            />
-                            <Button 
-                                className="w-full text-xs h-8" 
-                                disabled={!feedback.rating}
-                                onClick={handleFeedback}
-                            >
-                                Enviar Retroalimentación
-                            </Button>
-                        </>
-                    ) : (
-                        <div className="text-center py-4 space-y-2">
-                            <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-green-100 text-green-600">
-                                <ThumbsUp className="h-5 w-5" />
-                            </div>
-                            <p className="text-sm font-bold text-foreground">¡Gracias por tu feedback!</p>
-                            <p className="text-xs text-muted-foreground">Lo usaremos para mejorar tus futuros planes.</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      className="mt-6 space-y-6 overflow-hidden"
+    >
+      <div
+        className="p-4 rounded-2xl"
+        style={{ background: "rgba(212,175,55,0.05)", border: "1px solid rgba(212,175,55,0.15)" }}
+      >
+        <div className="flex items-center gap-2 mb-2">
+          <Lightbulb className="h-4 w-4" style={{ color: "#D4AF37" }} />
+          <h4 className="font-bold text-sm" style={{ color: "#D4AF37" }}>
+            Análisis de la Situación
+          </h4>
         </div>
-    );
+        <p className="text-sm italic text-white/70 leading-relaxed">"{result.analysis}"</p>
+      </div>
+
+      <div className="space-y-3">
+        <h4 className="font-bold text-sm text-white flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-emerald-400" />
+          Áreas de Enfoque MANADA
+        </h4>
+        <div className="flex flex-wrap gap-2">
+          {result.focusAreas.map((area) => (
+            <Badge
+              key={area}
+              className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border-none hover:bg-emerald-500/20 transition-colors"
+            >
+              {area}
+            </Badge>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h4 className="font-bold text-sm text-white flex items-center gap-2">
+          <ListOrdered className="h-5 w-5 text-emerald-400" />
+          Plan de Acción Paso a Paso
+        </h4>
+        <div className="grid gap-3">
+          {result.planSteps.map((step) => (
+            <div
+              key={step.step}
+              className="p-4 rounded-2xl"
+              style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-black"
+                  style={{ background: "rgba(212,175,55,0.15)", color: "#D4AF37" }}
+                >
+                  {step.step}
+                </div>
+                <div className="space-y-1">
+                  <p className="font-bold text-sm text-white leading-tight">{step.title}</p>
+                  <p className="text-xs text-white/50 leading-relaxed">{step.description}</p>
+                  <div
+                    className="flex items-center gap-1 mt-2 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full w-fit"
+                    style={{ background: "rgba(212,175,55,0.1)", color: "#D4AF37" }}
+                  >
+                    <WandSparkles className="h-3 w-3" />
+                    Duración: {step.duration}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div
+        className="p-4 rounded-2xl"
+        style={{ background: "rgba(212,175,55,0.05)", border: "1px solid rgba(212,175,55,0.15)" }}
+      >
+        <div className="flex items-center gap-2 mb-2">
+          <Dog className="h-4 w-4" style={{ color: "#D4AF37" }} />
+          <h4 className="font-bold text-sm" style={{ color: "#D4AF37" }}>
+            Consejo del Entrenador
+          </h4>
+        </div>
+        <p className="text-sm text-white/70 leading-relaxed">{result.proTip}</p>
+      </div>
+
+      {/* Feedback Section */}
+      <div
+        className="p-4 rounded-2xl text-center space-y-4"
+        style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.06)" }}
+      >
+        {!submitted ? (
+          <>
+            <h4 className="text-sm font-bold flex items-center justify-center gap-2">
+              <MessageSquare className="h-4 w-4 text-emerald-400" />
+              ¿Te ha sido útil este plan?
+            </h4>
+            <div className="flex gap-2">
+              <button
+                className={`flex-1 flex items-center justify-center gap-2 h-10 rounded-xl text-xs font-bold transition-all ${
+                  feedback.rating === "up" ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-white/60"
+                }`}
+                onClick={() => setFeedback((prev) => ({ ...prev, rating: "up" }))}
+              >
+                <ThumbsUp className="h-3.5 w-3.5" /> Útil
+              </button>
+              <button
+                className={`flex-1 flex items-center justify-center gap-2 h-10 rounded-xl text-xs font-bold transition-all ${
+                  feedback.rating === "down" ? "bg-red-500/20 text-red-400" : "bg-white/5 text-white/60"
+                }`}
+                onClick={() => setFeedback((prev) => ({ ...prev, rating: "down" }))}
+              >
+                <ThumbsDown className="h-3.5 w-3.5" /> No mucho
+              </button>
+            </div>
+            <Textarea
+              placeholder="¿Algún comentario adicional?"
+              className="text-xs min-h-[60px] rounded-xl bg-black/20 border-white/10 resize-none"
+              value={feedback.comment}
+              onChange={(e) => setFeedback((prev) => ({ ...prev, comment: e.target.value }))}
+            />
+            <button
+              disabled={!feedback.rating}
+              onClick={handleFeedback}
+              className="w-full h-10 rounded-xl bg-emerald-500 text-black font-black uppercase text-[10px] tracking-wider disabled:opacity-50 disabled:bg-white/10 disabled:text-white/30"
+            >
+              Enviar Feedback
+            </button>
+          </>
+        ) : (
+          <motion.div
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            className="flex flex-col items-center gap-2 py-2"
+          >
+            <div className="h-10 w-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+              <ThumbsUp className="h-5 w-5 text-emerald-400" />
+            </div>
+            <p className="text-sm font-bold">¡Gracias por tu feedback!</p>
+            <p className="text-[10px] text-white/40">Lo usaremos para mejorar tus futuros planes.</p>
+          </motion.div>
+        )}
+      </div>
+    </motion.div>
+  );
 }
 
 function LoadingSkeleton() {
-    return (
-        <div className="mt-6 space-y-6 animate-pulse">
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/5 border border-primary/10">
-                <Sparkles className="h-5 w-5 text-primary animate-bounce" />
-                <div className="space-y-2 flex-1">
-                    <p className="text-sm font-medium text-primary">El Asistente MANADA está analizando tu caso...</p>
-                    <Skeleton className="h-2 w-full bg-primary/20" />
-                </div>
-            </div>
-            
-            <div className="space-y-4">
-                <div className="space-y-2">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-20 w-full" />
-                </div>
-
-                <div className="space-y-2">
-                    <Skeleton className="h-4 w-40" />
-                    <div className="flex gap-2">
-                        <Skeleton className="h-6 w-24 rounded-full" />
-                        <Skeleton className="h-6 w-28 rounded-full" />
-                        <Skeleton className="h-6 w-20 rounded-full" />
-                    </div>
-                </div>
-
-                <div className="space-y-3">
-                    <Skeleton className="h-4 w-48" />
-                    <div className="space-y-3">
-                        {[1, 2, 3].map((i) => (
-                            <div key={i} className="p-4 rounded-lg border border-dashed flex gap-4">
-                                <Skeleton className="h-10 w-10 rounded-full shrink-0" />
-                                <div className="space-y-2 flex-1">
-                                    <Skeleton className="h-4 w-1/3" />
-                                    <Skeleton className="h-3 w-full" />
-                                    <Skeleton className="h-3 w-2/3" />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
+  return (
+    <div className="mt-6 space-y-4 animate-pulse">
+      <div className="flex items-center gap-3 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
+        <Sparkles className="h-5 w-5 text-emerald-400 animate-bounce" />
+        <div className="space-y-2 flex-1">
+          <p className="text-xs font-medium text-emerald-400">El Asistente MANADA está analizando tu caso...</p>
+          <div className="h-1.5 w-full bg-emerald-500/20 rounded-full overflow-hidden">
+            <div className="h-full bg-emerald-400 w-1/2 animate-[shimmer_1s_infinite]" />
+          </div>
         </div>
-    )
+      </div>
+
+      <div className="space-y-2">
+        <div className="h-4 w-32 bg-white/5 rounded-full" />
+        <div className="h-24 w-full bg-white/5 rounded-2xl" />
+      </div>
+
+      <div className="space-y-2">
+        <div className="h-4 w-40 bg-white/5 rounded-full" />
+        <div className="flex gap-2">
+          <div className="h-6 w-24 rounded-full bg-white/5" />
+          <div className="h-6 w-28 rounded-full bg-white/5" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function PlannerCard({ className }: { className?: string }) {
@@ -335,18 +347,24 @@ export function PlannerCard({ className }: { className?: string }) {
   const form = useForm<z.infer<typeof planSchema>>({
     resolver: zodResolver(planSchema),
     defaultValues: {
-        mainProblem: "",
-        context: "",
-        intensity: "Moderada",
-        dogInfo: "",
-        details: "",
-        comorbidities: []
-    }
+      mainProblem: "",
+      context: "",
+      intensity: "Moderada",
+      dogInfo: "",
+      details: "",
+      comorbidities: userProfile?.comorbidities || [],
+    },
   });
+
+  useEffect(() => {
+    if (userProfile?.comorbidities && userProfile.comorbidities.length > 0) {
+      form.setValue("comorbidities", userProfile.comorbidities);
+    }
+  }, [userProfile?.comorbidities, form]);
 
   const onSubmit = async (values: z.infer<typeof planSchema>) => {
     if (!user || !selectedPet) {
-      toast({ variant: "destructive", title: "Debes seleccionar un binomio para generar un plan." });
+      toast({ variant: "destructive", title: "Selecciona un binomio primero." });
       return;
     }
 
@@ -354,30 +372,23 @@ export function PlannerCard({ className }: { className?: string }) {
     setResult(null);
 
     try {
-        const input = {
-            ...values,
-            dogName: selectedPet.name,
-            ownerName: userProfile?.displayName || "Entrenador",
-        };
+      const input = {
+        ...values,
+        dogName: selectedPet.name,
+        ownerName: userProfile?.displayName || "Entrenador",
+      };
 
-      // 1. Get detailed training plan
       const planResult = await callGroq(input);
       setResult(planResult);
 
-      // 2. Save to Supabase
-      await supabase.from('plan_history').insert({
-          analysis: planResult.analysis,
-          focusAreas: planResult.focusAreas,
-          plan_steps: planResult.planSteps,
-          dogDescription: input.details,
-          dogName: selectedPet.name,
-          pet_id: selectedPet.id,
-          user_id: user.id
-      });
-
-      toast({
-        title: "¡Plan Generado!",
-        description: `Tu ruta para ${selectedPet.name} está lista.`,
+      await supabase.from("plan_history").insert({
+        analysis: planResult.analysis,
+        focusAreas: planResult.focusAreas,
+        plan_steps: planResult.planSteps,
+        dogDescription: input.details,
+        dogName: selectedPet.name,
+        pet_id: selectedPet.id,
+        user_id: user.id,
       });
 
     } catch (error: any) {
@@ -385,7 +396,7 @@ export function PlannerCard({ className }: { className?: string }) {
       toast({
         variant: "destructive",
         title: "Error al generar el plan",
-        description: error.message || "No se pudo conectar con el asistente de IA.",
+        description: error.message || "No se pudo conectar con la IA.",
       });
     } finally {
       setLoading(false);
@@ -393,231 +404,234 @@ export function PlannerCard({ className }: { className?: string }) {
   };
 
   return (
-    <Card className={cn("border-white/5 bg-black/40 backdrop-blur-xl rounded-[2.5rem]", className)}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl font-black uppercase tracking-tighter text-white">
-             <WandSparkles className="h-6 w-6 text-primary" />
-             Diagnóstico IA: {selectedPet?.name || "Binomio"}
-          </CardTitle>
-          <CardDescription className="text-xs font-bold uppercase tracking-widest text-primary/60">
-            Inteligencia Canina Personalizada MC26
-          </CardDescription>
-        </CardHeader>
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-                <CardContent className="space-y-6">
-                    <div className="space-y-4">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">¿Cuál es el foco hoy?</Label>
-                        <FormField
-                            control={form.control}
-                            name="mainProblem"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                                        {[
-                                            { id: 'Bark', label: 'Ladridos', icon: '/focus/barking.png' },
-                                            { id: 'Leash', label: 'Tira Correa', icon: '/focus/leash.png' },
-                                            { id: 'Anxiety', label: 'Ansiedad', icon: '/focus/anxiety.png' },
-                                            { id: 'Fear', label: 'Miedofobia', icon: '/focus/fear.png' },
-                                            { id: 'Basics', label: 'Obediencia', icon: '/focus/obedience.png' },
-                                            { id: 'Destructive', label: 'Destrucción', icon: '/focus/destruction.png' },
-                                            { id: 'Aggression', label: 'Agresividad', icon: '/focus/aggression.png' },
-                                            { id: 'Guarding', label: 'Protección Recursos', icon: '/focus/guarding.png' },
-                                            { id: 'Reactivity', label: 'Reactividad', icon: '/focus/reactivity.png' },
-                                            { id: 'Hyper', label: 'Hiperactividad', icon: '/focus/hyperactivity.png' },
-                                            { id: 'Shy', label: 'Timidez', icon: '/focus/shyness.png' },
-                                            { id: 'Attention', label: 'Busca Atención', icon: '/focus/attention.png' },
-                                        ].map((opt) => (
-                                            <div 
-                                                key={opt.id}
-                                                onClick={() => field.onChange(opt.label)}
-                                                className={cn(
-                                                    "cursor-pointer rounded-2xl border transition-all flex flex-col items-center gap-3 group relative overflow-hidden",
-                                                    field.value === opt.label ? "border-primary bg-primary/10" : "border-white/10 bg-black/20 hover:bg-white/5"
-                                                )}
-                                            >
-                                                <div className="w-full aspect-square overflow-hidden relative group">
-                                                    <Image 
-                                                        src={opt.icon} 
-                                                        alt={opt.label} 
-                                                        fill
-                                                        className="object-cover transition-transform duration-500 group-hover:scale-110 filter-vintage-art" 
-                                                    />
-                                                    
-                                                    {field.value === opt.label && (
-                                                        <div className="absolute inset-0 bg-primary/20 backdrop-blur-[2px] flex items-center justify-center">
-                                                            <div className="bg-primary text-black rounded-full p-1 shadow-lg">
-                                                                <ThumbsUp className="h-4 w-4" />
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <span className="text-[9px] font-bold uppercase tracking-tighter text-center pb-2 px-1 line-clamp-1">{opt.label}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
+    <div
+      className={cn("rounded-[2rem] overflow-hidden", className)}
+      style={{
+        background: "rgba(255,255,255,0.03)",
+        border: "1px solid rgba(255,255,255,0.06)",
+      }}
+    >
+      <div
+        className="px-5 py-4 border-b"
+        style={{ borderColor: "rgba(255,255,255,0.05)" }}
+      >
+        <h2 className="flex items-center gap-2 text-lg font-black uppercase tracking-tight text-white">
+          <WandSparkles className="h-5 w-5" style={{ color: "#D4AF37" }} />
+          Diagnóstico IA: {selectedPet?.name || "Binomio"}
+        </h2>
+        <p className="text-[9px] font-bold uppercase tracking-[0.15em] mt-0.5" style={{ color: "#D4AF37" }}>
+          Asistencia Inteligente MC26
+        </p>
+      </div>
 
-                    <div className="space-y-4 pt-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Escenario de la situación</Label>
-                        <FormField
-                            control={form.control}
-                            name="context"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        {[
-                                            'Casa / Hogar',
-                                            'Parque o Jardín',
-                                            'Paseo en la calle',
-                                            'Transporte público',
-                                            'Vehículo particular',
-                                            'Clínica veterinaria',
-                                            'Multitudes / Espacio lleno',
-                                            'Visitas en casa',
-                                            'Lugares desconocidos',
-                                            'Aire libre / Excursión',
-                                            'Entorno laboral',
-                                            'Eventos sociales',
-                                            'Emergencias / Ruidos'
-                                        ].map((ctx) => (
-                                            <div 
-                                                key={ctx}
-                                                onClick={() => field.onChange(ctx)}
-                                                className={cn(
-                                                    "cursor-pointer p-4 rounded-xl border transition-all flex items-center gap-3",
-                                                    field.value === ctx ? "border-primary bg-primary/10" : "border-white/10 bg-white/[0.02] hover:bg-white/5"
-                                                )}
-                                            >
-                                                <div className={cn("h-4 w-4 rounded-full border-2", field.value === ctx ? "border-primary bg-primary" : "border-white/20")} />
-                                                <span className="text-xs font-bold text-white/80">{ctx}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="p-5 space-y-6">
+          
+          {/* Main Problem */}
+          <div className="space-y-3">
+            <Label className="text-[9px] font-black uppercase tracking-widest text-white/40">
+              ¿Cuál es el foco hoy?
+            </Label>
+            <FormField
+              control={form.control}
+              name="mainProblem"
+              render={({ field }) => (
+                <FormItem>
+                    <div className="flex overflow-x-auto scrollbar-hide pb-2 gap-2 -mx-5 px-5">
+                      {[
+                        { id: "Bark", label: "Ladridos", icon: "/focus/barking.png" },
+                        { id: "Leash", label: "Tira Correa", icon: "/focus/leash.png" },
+                        { id: "Anxiety", label: "Ansiedad", icon: "/focus/anxiety.png" },
+                        { id: "Fear", label: "Miedos", icon: "/focus/fear.png" },
+                        { id: "Basics", label: "Obediencia", icon: "/focus/obedience.png" },
+                        { id: "Destructive", label: "Destrucción", icon: "/focus/destruction.png" },
+                        { id: "Aggression", label: "Agresividad", icon: "/focus/aggression.png" },
+                        { id: "Guarding", label: "Protección Recursos", icon: "/focus/guarding.png" },
+                        { id: "Reactivity", label: "Reactividad", icon: "/focus/reactivity.png" },
+                        { id: "Hyper", label: "Hiperactividad", icon: "/focus/hyperactivity.png" },
+                        { id: "Shy", label: "Timidez", icon: "/focus/shyness.png" },
+                        { id: "Attention", label: "Busca Atención", icon: "/focus/attention.png" },
+                      ].map((opt) => (
+                      <div
+                        key={opt.id}
+                        onClick={() => field.onChange(opt.label)}
+                        className="cursor-pointer rounded-[1.2rem] flex flex-col items-center gap-2 flex-shrink-0 transition-all press-effect"
+                        style={{
+                          width: "80px",
+                          background: field.value === opt.label ? "rgba(212,175,55,0.15)" : "rgba(255,255,255,0.03)",
+                          border: field.value === opt.label ? "1px solid rgba(212,175,55,0.4)" : "1px solid rgba(255,255,255,0.05)",
+                          padding: "8px",
+                        }}
+                      >
+                        <div className="w-12 h-12 rounded-full overflow-hidden relative">
+                          <Image
+                            src={opt.icon}
+                            alt={opt.label}
+                            fill
+                            className="object-cover filter-vintage-art"
+                            unoptimized
+                          />
+                        </div>
+                        <span className="text-[9px] font-bold text-center leading-tight line-clamp-1">
+                          {opt.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <FormMessage className="text-[10px]" />
+                </FormItem>
+              )}
+            />
+          </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
-                        <FormField
-                            control={form.control}
-                            name="intensity"
-                            render={({ field }) => (
-                                <FormItem className="space-y-4">
-                                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Intensidad / Urgencia</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger className="h-12 rounded-xl bg-white/5 border-white/10 font-bold">
-                                                <SelectValue placeholder="Selecciona intensidad" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="Baja">Baja (Ocasional)</SelectItem>
-                                            <SelectItem value="Moderada">Moderada (Frecuente)</SelectItem>
-                                            <SelectItem value="Alta">Alta (Constante / Riesgo)</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+          {/* Context & Intensity Row */}
+          <div className="grid grid-cols-2 gap-3">
+            <FormField
+              control={form.control}
+              name="context"
+              render={({ field }) => (
+                <FormItem>
+                  <Label className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5 block">
+                    Escenario
+                  </Label>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="h-11 rounded-xl bg-white/5 border-white/10 text-xs font-bold">
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="bg-black/95 border-white/10 text-white rounded-xl">
+                      <SelectItem value="Casa / Hogar">Casa / Hogar</SelectItem>
+                      <SelectItem value="Parque o Jardín">Parque o Jardín</SelectItem>
+                      <SelectItem value="Paseo en la calle">Paseo en la calle</SelectItem>
+                      <SelectItem value="Transporte público">Transporte público</SelectItem>
+                      <SelectItem value="Vehículo particular">Vehículo particular</SelectItem>
+                      <SelectItem value="Clínica veterinaria">Clínica veterinaria</SelectItem>
+                      <SelectItem value="Multitudes / Espacio lleno">Multitudes / Espacio lleno</SelectItem>
+                      <SelectItem value="Visitas en casa">Visitas en casa</SelectItem>
+                      <SelectItem value="Lugares desconocidos">Lugares desconocidos</SelectItem>
+                      <SelectItem value="Aire libre / Excursión">Aire libre / Excursión</SelectItem>
+                      <SelectItem value="Entorno laboral">Entorno laboral</SelectItem>
+                      <SelectItem value="Eventos sociales">Eventos sociales</SelectItem>
+                      <SelectItem value="Emergencias / Ruidos">Emergencias / Ruidos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage className="text-[10px]" />
+                </FormItem>
+              )}
+            />
 
-                        <FormField
-                            control={form.control}
-                            name="dogInfo"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Perfil del Perro (Edad, Raza, Socialización)</FormLabel>
-                                    <FormControl>
-                                        <Input 
-                                            placeholder="Ej: Golden de 2 años, muy activo." 
-                                            className="h-12 rounded-xl bg-white/5 border-white/10 font-bold"
-                                            {...field} 
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
+            <FormField
+              control={form.control}
+              name="intensity"
+              render={({ field }) => (
+                <FormItem>
+                  <Label className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5 block">
+                    Intensidad
+                  </Label>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="h-11 rounded-xl bg-white/5 border-white/10 text-xs font-bold">
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="bg-black/95 border-white/10 text-white rounded-xl">
+                      <SelectItem value="Baja">Baja</SelectItem>
+                      <SelectItem value="Moderada">Media</SelectItem>
+                      <SelectItem value="Alta">Alta</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage className="text-[10px]" />
+                </FormItem>
+              )}
+            />
+          </div>
 
-                    <div className="space-y-4 pt-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Comorbilidades del Guía (Opcional)</Label>
-                        <FormField
-                            control={form.control}
-                            name="comorbidities"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <div className="flex flex-wrap gap-2">
-                                        {['TEPT', 'Ansiedad', 'Fobias', 'Depresión', 'TEA'].map((item) => (
-                                            <Badge
-                                                key={item}
-                                                variant={field.value?.includes(item) ? "default" : "outline"}
-                                                className="cursor-pointer px-4 py-2 rounded-lg transition-all"
-                                                onClick={() => {
-                                                    const current = field.value || [];
-                                                    if (current.includes(item)) {
-                                                        field.onChange(current.filter(v => v !== item));
-                                                    } else {
-                                                        field.onChange([...current, item]);
-                                                    }
-                                                }}
-                                            >
-                                                {item}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-                        
-                    <div className="space-y-4 pt-2">
-                        <FormField
-                            control={form.control}
-                            name="details"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Situación Detallada (El Por Qué)</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            placeholder="Cuéntanos exactamente qué sucede..."
-                                            className="min-h-[120px] rounded-2xl bg-white/5 border-white/10 font-medium resize-none shadow-inner"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
+          {/* Comorbidities */}
+          <div className="space-y-3">
+            <FormField
+              control={form.control}
+              name="comorbidities"
+              render={({ field }) => (
+                <FormItem>
+                  <Label className="text-[9px] font-black uppercase tracking-widest text-white/40 block">
+                    Tipo de Trastorno del Guía (Opcional)
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {["TEPT", "Ansiedad", "Fobias", "Depresión", "TEA"].map((item) => (
+                      <div
+                        key={item}
+                        className={cn(
+                          "cursor-pointer px-3 py-1.5 rounded-xl border transition-all text-[10px] font-bold",
+                          field.value?.includes(item)
+                            ? "border-[#D4AF37] bg-[rgba(212,175,55,0.15)] text-[#D4AF37]"
+                            : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10"
+                        )}
+                        onClick={() => {
+                          const current = field.value || [];
+                          if (current.includes(item)) {
+                            field.onChange(current.filter((v: string) => v !== item));
+                          } else {
+                            field.onChange([...current, item]);
+                          }
+                        }}
+                      >
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                  <FormMessage className="text-[10px]" />
+                </FormItem>
+              )}
+            />
+          </div>
 
-                    {loading && <LoadingSkeleton />}
-                    {result && <PlanResult result={result} />}
-                    
-                </CardContent>
-                <CardFooter className="pb-8">
-                    <Button 
-                      type="submit" 
-                      disabled={loading}
-                      className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
-                    >
-                        <WandSparkles className="mr-2 h-5 w-5" />
-                        {loading ? "Sincronizando con la IA..." : "Forjar Plan de Entrenamiento"}
-                    </Button>
-                </CardFooter>
-            </form>
-        </Form>
-    </Card>
+          {/* Details */}
+          <div className="space-y-3">
+            <FormField
+              control={form.control}
+              name="details"
+              render={({ field }) => (
+                <FormItem>
+                  <Label className="text-[9px] font-black uppercase tracking-widest text-white/40 block">
+                    Situación Detallada
+                  </Label>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Cuéntanos exactamente qué sucede..."
+                      className="min-h-[80px] rounded-xl bg-white/5 border-white/10 text-xs font-medium resize-none"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-[10px]" />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Hidden but required field with default value for the prompt */}
+          <input type="hidden" {...form.register("dogInfo")} value="Sin especificar" />
+
+          {loading && <LoadingSkeleton />}
+          {result && <PlanResult result={result} />}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full h-12 rounded-xl flex items-center justify-center gap-2 transition-all press-effect mt-2"
+            style={{
+              background: loading ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, #F5D98B, #D4AF37)",
+              color: loading ? "rgba(255,255,255,0.3)" : "black",
+              boxShadow: loading ? "none" : "0 8px 20px rgba(212,175,55,0.3)",
+            }}
+          >
+            <WandSparkles className={`h-4 w-4 ${loading ? "animate-pulse" : ""}`} />
+            <span className="text-[11px] font-black uppercase tracking-wider">
+              {loading ? "Sincronizando..." : "Generar Plan"}
+            </span>
+          </button>
+        </form>
+      </Form>
+    </div>
   );
 }
-
-    
-

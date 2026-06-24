@@ -1,118 +1,71 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { TrendingUp, Award, CalendarDays, Activity } from "lucide-react";
 import { useAppState } from "@/context/app-state-provider";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CheckCircle, Award, Lightbulb, Loader2 } from "lucide-react";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
-
-const trainingTips = [
-    { icon: Lightbulb, tip: "¡La constancia es clave! Practica en sesiones cortas y frecuentes de 5-10 minutos." },
-    { icon: Award, tip: "Usa refuerzo positivo. ¡Celebra cada pequeño logro con premios y carcaricias!" },
-    { icon: CheckCircle, tip: "Termina siempre cada sesión de entrenamiento con una nota positiva y un ejercicio que tu perro domine." },
-];
 
 export default function ProgressPage() {
-    const { modules } = useAppState();
-    const [mounted, setMounted] = useState(false);
+  const { progress } = useAppState();
 
-    useEffect(() => {
-        setMounted(true);
-    }, []);
+  return (
+    <div className="flex flex-col gap-6 px-4 pt-5 pb-8 max-w-2xl mx-auto w-full">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-1"
+      >
+        <h1 className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-2">
+          Progreso <TrendingUp className="h-6 w-6 text-emerald-400" />
+        </h1>
+        <p className="text-[11px] font-bold text-white/40 uppercase tracking-widest">
+          Estadísticas de tu manada
+        </p>
+      </motion.div>
 
-    if (!mounted || !modules) {
-        return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      {/* Main Stats */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.1 }}
+        className="rounded-[2rem] p-6 text-center space-y-4"
+        style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        <div className="flex justify-center">
+          <div className="relative flex items-center justify-center h-32 w-32 rounded-full" style={{ background: "rgba(16,185,129,0.1)", border: "4px solid rgba(16,185,129,0.2)" }}>
+            <div className="text-center">
+              <span className="text-4xl font-black text-emerald-400 leading-none">{progress}%</span>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/50 mt-1">Global</p>
             </div>
-        );
-    }
-
-    const chartData = modules.map(module => {
-        const completed = module.weeks.filter(week => week.completed).length;
-        const total = module.weeks.length;
-        const percentage = total > 0 ? (completed / total) * 100 : 0;
-        return {
-            name: `Módulo ${module.moduleNumber}`,
-            progreso: Math.round(percentage),
-        };
-    });
-    
-    const COLORS = [
-        "hsl(var(--chart-1))",
-        "hsl(var(--chart-2))",
-        "hsl(var(--chart-3))",
-        "hsl(var(--chart-4))",
-        "hsl(var(--chart-5))",
-        "hsl(var(--primary))",
-    ];
-
-    return (
-        <div className="p-4 sm:p-6 lg:p-8 space-y-8 max-w-7xl mx-auto pb-20 w-full">
-            <div className="grid gap-6 md:grid-cols-2">
-                 <Card className="md:col-span-2">
-                    <CardHeader>
-                        <CardTitle>Progreso por Módulo</CardTitle>
-                        <CardDescription>Visualiza el avance en cada sección del programa MANADA.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="h-[300px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Tooltip
-                                        contentStyle={{
-                                            backgroundColor: "hsl(var(--background))",
-                                            borderColor: "hsl(var(--border))",
-                                            borderRadius: "var(--radius)",
-                                        }}
-                                        formatter={(value: any, name: any) => [`${value}%`, name]}
-                                    />
-                                    <Legend
-                                      iconSize={10}
-                                      layout="vertical"
-                                      verticalAlign="middle"
-                                      align="right"
-                                      wrapperStyle={{
-                                        color: "hsl(var(--muted-foreground))",
-                                        fontSize: '12px'
-                                      }}
-                                    />
-                                    <Pie
-                                        data={chartData}
-                                        cx="50%"
-                                        cy="50%"
-                                        labelLine={false}
-                                        outerRadius={100}
-                                        fill="#8884d8"
-                                        dataKey="progreso"
-                                        nameKey="name"
-                                    >
-                                        {chartData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="md:col-span-2">
-                    <CardHeader>
-                        <CardTitle>Consejos de Entrenamiento</CardTitle>
-                        <CardDescription>Pequeños recordatorios para un gran éxito.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {trainingTips.map((item, index) => (
-                            <div key={index} className="flex items-start gap-4">
-                                <item.icon className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
-                                <p className="text-muted-foreground">{item.tip}</p>
-                            </div>
-                        ))}
-                    </CardContent>
-                </Card>
-            </div>
+            {/* SVG circle stroke animation can go here later */}
+          </div>
         </div>
-    );
-}
 
+        <p className="text-sm font-medium text-white/70">
+          ¡Vas por buen camino! Sigue entrenando para completar tu próximo módulo.
+        </p>
+      </motion.div>
+
+      {/* Coming Soon Grid */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="grid grid-cols-2 gap-3"
+      >
+        <div className="p-4 rounded-2xl flex flex-col items-center justify-center gap-2 text-center" style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.05)" }}>
+          <Activity className="h-6 w-6 text-white/20" />
+          <p className="text-[10px] font-black uppercase tracking-wider text-white/30">Gráficos Detallados<br/>Pronto</p>
+        </div>
+        <div className="p-4 rounded-2xl flex flex-col items-center justify-center gap-2 text-center" style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.05)" }}>
+          <Award className="h-6 w-6 text-white/20" />
+          <p className="text-[10px] font-black uppercase tracking-wider text-white/30">Historial de Logros<br/>Pronto</p>
+        </div>
+        <div className="p-4 rounded-2xl flex flex-col items-center justify-center gap-2 text-center col-span-2" style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.05)" }}>
+          <CalendarDays className="h-6 w-6 text-white/20" />
+          <p className="text-[10px] font-black uppercase tracking-wider text-white/30">Calendario de Actividad Próximamente</p>
+        </div>
+      </motion.div>
+    </div>
+  );
+}

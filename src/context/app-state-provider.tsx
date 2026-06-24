@@ -613,7 +613,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
 
   const isNewUser = useMemo(() => {
     if (!userProfile) return false;
-    return userProfile.onboarding_completed === false;
+    return userProfile.onboarding_completed !== true;
   }, [userProfile]);
 
   // ROBUST GLOBAL REDIRECT

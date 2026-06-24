@@ -359,16 +359,24 @@ export default function CoursesPage() {
                                       )}
                                       
                                       {week.videoUrl && (
-                                        <div className="mt-4">
-                                          <a 
-                                            href={week.videoUrl} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer" 
-                                            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 text-white/90 hover:text-white hover:bg-white/5 hover:border-white/30 transition-all text-xs font-bold w-fit"
-                                          >
-                                            <PlayCircle className="h-4 w-4 text-emerald-400" />
-                                            Ver Video de Soporte
-                                          </a>
+                                        <div className="mt-4 rounded-xl overflow-hidden border border-white/10 relative pt-[56.25%]">
+                                          <iframe
+                                            src={(() => {
+                                              const url = week.videoUrl;
+                                              if (url.includes('vimeo.com')) {
+                                                const match = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+                                                if (match) {
+                                                  const hashMatch = url.match(/h=([^&]+)/);
+                                                  return `https://player.vimeo.com/video/${match[1]}${hashMatch ? `?h=${hashMatch[1]}` : ''}`;
+                                                }
+                                              }
+                                              return url;
+                                            })()}
+                                            className="absolute top-0 left-0 w-full h-full"
+                                            frameBorder="0"
+                                            allow="autoplay; fullscreen; picture-in-picture"
+                                            allowFullScreen
+                                          />
                                         </div>
                                       )}
                                     </div>

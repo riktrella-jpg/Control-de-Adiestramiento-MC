@@ -81,19 +81,18 @@ function VideoButton({ videoUrl, weekLabel }: { videoUrl?: string; weekLabel: st
       {/* The Button */}
       <button
         onClick={() => hasVideo && setOpen(true)}
-        disabled={!hasVideo}
         className={cn(
-          "w-full mt-2 group relative flex items-center gap-3 rounded-2xl border overflow-hidden transition-all duration-300 text-left",
+          "w-full mt-2 group relative flex items-center gap-3 rounded-2xl border transition-all duration-200 text-left",
           hasVideo
-            ? "bg-gradient-to-r from-emerald-500/10 to-emerald-600/5 border-emerald-500/20 hover:border-emerald-400/40 hover:from-emerald-500/15 active:scale-[0.98]"
-            : "bg-white/[0.02] border-white/8 opacity-70 cursor-default"
+            ? "bg-gradient-to-r from-emerald-500/10 to-emerald-600/5 border-emerald-500/25 hover:border-emerald-400/50 hover:from-emerald-500/20 active:scale-[0.97] cursor-pointer"
+            : "bg-white/[0.03] border-dashed border-white/20 cursor-not-allowed"
         )}
       >
         {/* Left accent bar */}
         <div
           className={cn(
-            "absolute left-0 top-0 bottom-0 w-0.5 rounded-full",
-            hasVideo ? "bg-emerald-400" : "bg-white/15"
+            "absolute left-0 top-0 bottom-0 w-1 rounded-r-full",
+            hasVideo ? "bg-emerald-400" : "bg-white/10"
           )}
         />
 
@@ -101,7 +100,7 @@ function VideoButton({ videoUrl, weekLabel }: { videoUrl?: string; weekLabel: st
           {/* Icon */}
           <div
             className={cn(
-              "h-9 w-9 shrink-0 rounded-xl flex items-center justify-center transition-transform duration-300",
+              "h-10 w-10 shrink-0 rounded-xl flex items-center justify-center transition-transform duration-300",
               hasVideo
                 ? "bg-emerald-500/20 group-hover:scale-110"
                 : "bg-white/5"
@@ -110,38 +109,28 @@ function VideoButton({ videoUrl, weekLabel }: { videoUrl?: string; weekLabel: st
             <PlayCircle
               className={cn(
                 "h-5 w-5",
-                hasVideo ? "text-emerald-400" : "text-white/20"
+                hasVideo ? "text-emerald-400" : "text-white/30"
               )}
             />
           </div>
 
           {/* Text */}
           <div className="flex-1 min-w-0">
-            <p
-              className={cn(
-                "text-xs font-bold",
-                hasVideo ? "text-white" : "text-white/30"
-              )}
-            >
+            <p className={cn("text-xs font-bold", hasVideo ? "text-white" : "text-white/50")}>
               Video de Soporte
             </p>
-            <p
-              className={cn(
-                "text-[10px] mt-0.5",
-                hasVideo ? "text-emerald-400" : "text-white/20"
-              )}
-            >
-              {hasVideo ? `Ver video · ${weekLabel}` : "Próximamente"}
+            <p className={cn("text-[10px] mt-0.5 font-medium", hasVideo ? "text-emerald-400" : "text-white/30")}>
+              {hasVideo ? `Toca para ver · ${weekLabel}` : "Próximamente disponible"}
             </p>
           </div>
 
           {/* Badge */}
           {!hasVideo ? (
-            <span className="text-[9px] font-black uppercase tracking-widest text-white/20 bg-white/5 px-2 py-1 rounded-lg">
+            <span className="text-[9px] font-black uppercase tracking-widest text-white/40 bg-white/8 border border-white/10 px-2.5 py-1.5 rounded-lg shrink-0">
               PRONTO
             </span>
           ) : (
-            <span className="text-[9px] font-black uppercase tracking-widest text-emerald-300 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+            <span className="text-[9px] font-black uppercase tracking-widest text-emerald-300 bg-emerald-500/15 px-2.5 py-1.5 rounded-lg border border-emerald-500/30 shrink-0">
               VER ▶
             </span>
           )}

@@ -13,6 +13,7 @@ import {
   Clock,
   Sparkles,
   Trophy,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -57,7 +58,139 @@ function TaskCheckbox({
   );
 }
 
+// --- Subcomponente Botón de Video con Modal ---
+function VideoButton({ videoUrl, weekLabel }: { videoUrl?: string; weekLabel: string }) {
+  const [open, setOpen] = useState(false);
 
+  const embedUrl = React.useMemo(() => {
+    if (!videoUrl) return null;
+    if (videoUrl.includes('vimeo.com') || videoUrl.includes('player.vimeo.com')) {
+      const match = videoUrl.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+      if (match) {
+        const hashMatch = videoUrl.match(/h=([^&]+)/);
+        return `https://player.vimeo.com/video/${match[1]}?autoplay=1${hashMatch ? `&h=${hashMatch[1]}` : '&dnt=1'}&title=0&byline=0&portrait=0`;
+      }
+    }
+    return videoUrl;
+  }, [videoUrl]);
+
+  const hasVideo = !!embedUrl;
+
+  return (
+    <>
+      {/* The Button */}
+      <button
+        onClick={() => hasVideo && setOpen(true)}
+        disabled={!hasVideo}
+        className={cn(
+          "w-full mt-2 group relative flex items-center gap-3 rounded-2xl border overflow-hidden transition-all duration-300 text-left",
+          hasVideo
+            ? "bg-gradient-to-r from-emerald-500/10 to-emerald-600/5 border-emerald-500/20 hover:border-emerald-400/40 hover:from-emerald-500/15 active:scale-[0.98]"
+            : "bg-white/[0.02] border-white/8 opacity-70 cursor-default"
+        )}
+      >
+        {/* Left accent bar */}
+        <div
+          className={cn(
+            "absolute left-0 top-0 bottom-0 w-0.5 rounded-full",
+            hasVideo ? "bg-emerald-400" : "bg-white/15"
+          )}
+        />
+
+        <div className="flex items-center gap-3 px-4 py-3 w-full">
+          {/* Icon */}
+          <div
+            className={cn(
+              "h-9 w-9 shrink-0 rounded-xl flex items-center justify-center transition-transform duration-300",
+              hasVideo
+                ? "bg-emerald-500/20 group-hover:scale-110"
+                : "bg-white/5"
+            )}
+          >
+            <PlayCircle
+              className={cn(
+                "h-5 w-5",
+                hasVideo ? "text-emerald-400" : "text-white/20"
+              )}
+            />
+          </div>
+
+          {/* Text */}
+          <div className="flex-1 min-w-0">
+            <p
+              className={cn(
+                "text-xs font-bold",
+                hasVideo ? "text-white" : "text-white/30"
+              )}
+            >
+              Video de Soporte
+            </p>
+            <p
+              className={cn(
+                "text-[10px] mt-0.5",
+                hasVideo ? "text-emerald-400" : "text-white/20"
+              )}
+            >
+              {hasVideo ? `Ver video · ${weekLabel}` : "Próximamente"}
+            </p>
+          </div>
+
+          {/* Badge */}
+          {!hasVideo ? (
+            <span className="text-[9px] font-black uppercase tracking-widest text-white/20 bg-white/5 px-2 py-1 rounded-lg">
+              PRONTO
+            </span>
+          ) : (
+            <span className="text-[9px] font-black uppercase tracking-widest text-emerald-300 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+              VER ▶
+            </span>
+          )}
+        </div>
+      </button>
+
+      {/* Modal Full-Screen Video Player */}
+      <AnimatePresence>
+        {open && hasVideo && (
+          <motion.div
+            key="video-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[999] flex flex-col bg-black"
+          >
+            {/* Modal Header */}
+            <div
+              className="flex items-center justify-between px-4 py-3 shrink-0"
+              style={{ background: "rgba(0,0,0,0.8)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}
+            >
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-400">Video de Soporte</p>
+                <p className="text-sm font-bold text-white">{weekLabel}</p>
+              </div>
+              <button
+                onClick={() => setOpen(false)}
+                className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+              >
+                <X className="h-4 w-4 text-white" />
+              </button>
+            </div>
+
+            {/* iframe — fills remaining space */}
+            <div className="flex-1 relative">
+              <iframe
+                src={embedUrl}
+                className="absolute inset-0 w-full h-full"
+                frameBorder="0"
+                allow="autoplay; fullscreen; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
 
 // --- Componente Principal ---
 export default function CoursesPage() {
@@ -358,27 +491,8 @@ export default function CoursesPage() {
                                         </div>
                                       )}
                                       
-                                      {week.videoUrl && (
-                                        <div className="mt-4 rounded-xl overflow-hidden border border-white/10 relative pt-[56.25%]">
-                                          <iframe
-                                            src={(() => {
-                                              const url = week.videoUrl;
-                                              if (url.includes('vimeo.com')) {
-                                                const match = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
-                                                if (match) {
-                                                  const hashMatch = url.match(/h=([^&]+)/);
-                                                  return `https://player.vimeo.com/video/${match[1]}${hashMatch ? `?h=${hashMatch[1]}` : ''}`;
-                                                }
-                                              }
-                                              return url;
-                                            })()}
-                                            className="absolute top-0 left-0 w-full h-full"
-                                            frameBorder="0"
-                                            allow="autoplay; fullscreen; picture-in-picture"
-                                            allowFullScreen
-                                          />
-                                        </div>
-                                      )}
+                                      {/* VIDEO BUTTON — always visible */}
+                                      <VideoButton videoUrl={week.videoUrl} weekLabel={`Semana ${week.week}`} />
                                     </div>
 
                                     {/* Tareas (Microprácticas) */}
